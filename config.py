@@ -1,6 +1,7 @@
 class Config:
     AUDIO = {
-        'sr': 22050,  
+        'sr': 22050,  #librosa
+        'WHISPER_SR': 16000,  # Sample rate óptimo para Whisper
         'hop_length': 512, 
         'min_event_interval': 0.5,
         'onset_params': {
@@ -12,12 +13,6 @@ class Config:
             'wait': 10
         }
     }
-    
-    LYRIC = {
-        'max_length': 50,  # Máximo de caracteres por prompt
-        'context_window': 2.0  # Segundos antes/después para contexto lírico
-    }
-    
     RENDERING = {
         'fps': 24,
         'transition_duration': 0.5  # Duración de transiciones entre imágenes
@@ -26,4 +21,14 @@ class Config:
         'color_scheme': ['dominant', 'complementary', 'random'],
         'shapes': ['circles', 'squares', 'triangles'],
         'transitions': ['fade', 'slide', 'zoom']
+    }
+    GENIUS = {
+        'ENABLED': True,
+        'ACCESS_TOKEN': '9RXMs5KrjbQrRFlfNzKspC3EVgeBaxJZN3YkGcPCNd-R367PoLABwQsmK_N_SABT',
+        'TIMEOUT': 10  # segundos
+    }
+    WHISPER = {
+        'MODEL_SIZE': 'small', 
+        'DEVICE': 'cuda', 
+        'LANGUAGE': None 
     }
