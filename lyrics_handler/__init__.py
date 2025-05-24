@@ -1,31 +1,36 @@
-from .hybrid_sync import HybridLyricsSyncer
 from .api_lyrics import LyricsFetcher
-from typing import List, Dict
+from mutagen.id3 import ID3
+from mutagen.mp3 import MP3
 
 class LyricsHandler:
     def __init__(self):
         self.fetcher = LyricsFetcher()
-        self.syncer = HybridLyricsSyncer(model_size="base")  # "tiny", "base", "small"
     
-    def process(self, audio_path: str, events: List[Dict]) -> List[Dict]:
-        # 1. Obtener letras de referencia
+    def process(self, audio_path: str, events: list) -> list:
         artist, title = self._get_metadata(audio_path)
-        lyrics = self.fetcher.get_lyrics(artist, title)
-        
-        if not lyrics:
-            return events  # No hacer nada si no hay letras
-            
-        # 2. Sincronizar con audio
-        timed_lyrics = self.syncer.sync_lyrics(audio_path, lyrics)
-        
-        # 3. Asignar a eventos existentes
-        return self._assign_to_events(events, timed_lyrics)
+        print(f'{artist}  /  {title}')
+        result = self.fetcher.search_lyrics(artist, title)
+        print(result['syncedLyrics'])
+
+        return result['syncedLyrics']
+        # return self._assign_to_events(events, result['syncedLyrics'])
     
-    def _assign_to_events(self, events, lyrics):
-        lyric_idx = 0
+    def _get_metadata(self, audio_path: str) -> tuple:
+        try:
+            audio = MP3(audio_path, ID3=ID3)
+            artist = audio.tags.get('TPE1', ['Unknown'])[0]
+            title = audio.tags.get('TIT2', ['Unknown'])[0]
+            return artist, title
+        except:
+            return "Unknown", "Unknown"
+
+    
+    def _assign_to_events(self, events: list, lyrics: list) -> list:
+    
+        lyric_ptr = 0
         for event in events:
-            while (lyric_idx < len(lyrics)-1 and 
-                   lyrics[lyric_idx+1]['time'] <= event['start_time']):
-                lyric_idx += 1
-            event['lyric'] = lyrics[lyric_idx]['text']
+            while (lyric_ptr < len(lyrics)-1 and 
+                   lyrics[lyric_ptr+1]['time'] <= event['start_time']):
+                lyric_ptr += 1
+            event['lyric'] = lyrics[lyric_ptr]['text']
         return events

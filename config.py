@@ -28,7 +28,7 @@ class Config:
         'TIMEOUT': 10  # segundos
     }
     WHISPER = {
-        'MODEL_SIZE': 'small', 
+        'MODEL_SIZE': 'base', 
         'DEVICE': 'cuda', 
         'LANGUAGE': None 
     }
