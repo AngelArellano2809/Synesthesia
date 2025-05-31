@@ -1,7 +1,6 @@
 import tempfile
 from mutagen.id3 import ID3, APIC
 from mutagen.mp3 import MP3
-from PIL import Image
 
 class CoverExtractor:
     @staticmethod
