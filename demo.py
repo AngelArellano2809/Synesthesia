@@ -67,15 +67,19 @@ def main(audio_path: str):
     # 2. Procesar letras
     print("\n📝 Buscando letras...")
     events_with_lyrics = LyricsHandler().process(audio_path, audio_events['events'])
+    # print(events_with_lyrics)
     
     # 3. Mostrar resultados
-    # print("\n🎤 Letras sincronizadas:")
-    # print(f"Canción: {Path(audio_path).stem}")
-    # print(f"Tempo: {audio_events['metadata']['tempo']:.1f} BPM")
-    # print(f"Duración: {audio_events['metadata']['duration']:.2f}s")
-    # print("\nFragmentos sincronizados:")
-    # for event in events_with_lyrics[:50]:  # Mostrar primeros 15 eventos
+    print("\n🎤 Letras sincronizadas:")
+    print(f"Canción: {Path(audio_path).stem}")
+    print(f"Tempo: {audio_events['metadata']['tempo']:.1f} BPM")
+    print(f"Duración: {audio_events['metadata']['duration']:.2f}s")
+    print("\nFragmentos sincronizados:")
+    # for event in events_with_lyrics[:20]:
     #     print(f"{event['start_time']:.2f}s: {event.get('lyric')}")
+    for event in events_with_lyrics[:20]:
+        print(f"{event['start_time']:.2f}s \t- {event['end_time']:.2f}s \t| "
+              f"{event['type']}     \t(Intensidad: {event['intensity']:.2f})\t   letra: {event.get('lyric')}")
             
 
 if __name__ == "__main__":

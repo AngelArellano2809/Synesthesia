@@ -22,13 +22,3 @@ class Config:
         'shapes': ['circles', 'squares', 'triangles'],
         'transitions': ['fade', 'slide', 'zoom']
     }
-    GENIUS = {
-        'ENABLED': True,
-        'ACCESS_TOKEN': '9RXMs5KrjbQrRFlfNzKspC3EVgeBaxJZN3YkGcPCNd-R367PoLABwQsmK_N_SABT',
-        'TIMEOUT': 10  # segundos
-    }
-    WHISPER = {
-        'MODEL_SIZE': 'base', 
-        'DEVICE': 'cuda', 
-        'LANGUAGE': None 
-    }
