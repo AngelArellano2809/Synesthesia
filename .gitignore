@@ -6,3 +6,10 @@
 /test_scrips
 notas.txt
 audio_processor/__pycache__/beat_detection.cpython-312.pyc
+album_processor/__pycache__/__init__.cpython-312.pyc
+album_processor/__pycache__/color_palette.cpython-312.pyc
+album_processor/__pycache__/cover_extractor.cpython-312.pyc
+audio_processor/__pycache__/__init__.cpython-312.pyc
+audio_processor/__pycache__/event_generation.cpython-312.pyc
+lyrics_handler/__pycache__/__init__.cpython-312.pyc
+lyrics_handler/__pycache__/api_lyrics.cpython-312.pyc

@@ -48,6 +48,7 @@ import sys
 from pathlib import Path
 from audio_processor.event_generation import EventGenerator
 from lyrics_handler import LyricsHandler
+from album_processor import AlbumProcessor
 
 def main(audio_path: str):
     # 1. Procesar audio
@@ -57,17 +58,10 @@ def main(audio_path: str):
     print(f"🎵 Tempo: {audio_events['metadata']['tempo']:.1f} BPM")
     print(f"⏱️ Duración: {audio_events['metadata']['duration']:.1f}s")
     print(f"✨ Eventos detectados: {audio_events['metadata']['total_events']}")
-    
-    print(f"Eventos:")
-    for event in audio_events['events'][:3]:
-        print(f"{event['start_time']:.2f}s - {event['end_time']:.2f}s | "
-              f"{event['type']} (Intensidad: {event['intensity']:.2f})")
         
-
     # 2. Procesar letras
     print("\n📝 Buscando letras...")
     events_with_lyrics = LyricsHandler().process(audio_path, audio_events['events'])
-    # print(events_with_lyrics)
     
     # 3. Mostrar resultados
     print("\n🎤 Letras sincronizadas:")
@@ -75,11 +69,21 @@ def main(audio_path: str):
     print(f"Tempo: {audio_events['metadata']['tempo']:.1f} BPM")
     print(f"Duración: {audio_events['metadata']['duration']:.2f}s")
     print("\nFragmentos sincronizados:")
-    # for event in events_with_lyrics[:20]:
-    #     print(f"{event['start_time']:.2f}s: {event.get('lyric')}")
-    for event in events_with_lyrics[:20]:
+    for event in events_with_lyrics[:7]:
         print(f"{event['start_time']:.2f}s \t- {event['end_time']:.2f}s \t| "
               f"{event['type']}     \t(Intensidad: {event['intensity']:.2f})\t   letra: {event.get('lyric')}")
+    
+    #4. Procesar portada del álbum
+    album_processor = AlbumProcessor(n_colors=5)
+    color_palette = album_processor.process_album(audio_path)
+    
+    if color_palette:
+        print("\n🎨 Paleta de colores extraída:")
+        print(f"HEX: {color_palette['hex_colors']}")
+        # print(f"RGB: {color_palette['rgb_colors']}")
+        print(f"Descripción para prompt: {color_palette['prompt_description']}")
+    else:
+        print("\n⚠ No se encontró portada en los metadatos")
             
 
 if __name__ == "__main__":
