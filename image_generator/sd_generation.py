@@ -35,9 +35,54 @@ class ImageGenerator:
         
         # Generar semilla base basada en el primer evento
         base_seed = hash(events[0]["start_time"]) % 1000000
+
+
+        max_images = 50                                                                 #50 primeros eventos
+        print(f"Generando imágenes para {len(events)} eventos (límite: {max_images})")   
         
-        print(f"Generating {len(events)} images with style: {style_preset}")
-        for i, event in enumerate(tqdm(events, desc="Generating images")):
+        # Contador para imágenes generadas
+        generated_count = 0
+
+
+        
+        # print(f"Generating {len(events)} images with style: {style_preset}")
+        # for i, event in enumerate(tqdm(events, desc="Generating images")):
+        #     # Construir prompt específico para el evento
+        #     prompt = prompt_builder.build_prompt(event)
+            
+        #     # Crear semilla única para este evento
+        #     seed = base_seed + i
+            
+        #     # Generar la imagen
+        #     image = self.pipe(
+        #         prompt=prompt,
+        #         negative_prompt=ImageGenConfig.DEFAULT_NEGATIVE_PROMPT,
+        #         num_inference_steps=ImageGenConfig.DEFAULT_STEPS,
+        #         generator=torch.Generator(device=self.device).manual_seed(seed)
+        #     ).images[0]
+            
+        #     # Guardar con nombre basado en el tiempo del evento
+        #     filename = f"{event['start_time']:.2f}s.png"
+        #     image.save(os.path.join(output_dir, filename))
+        
+        # print(f"Images saved to: {output_dir}")
+
+
+        
+        for i, event in enumerate(tqdm(events, desc="Generando imágenes")):
+            # Verificar límite de imágenes
+            if max_images is not None and generated_count >= max_images:
+                print(f"Se alcanzó el límite de {max_images} imágenes")
+                break
+                
+            # Construir nombre de archivo
+            filename = f"{event['start_time']:.2f}s.png"
+            filepath = os.path.join(output_dir, filename)
+            
+            # Saltar si el archivo ya existe
+            if os.path.exists(filepath):
+                continue
+                
             # Construir prompt específico para el evento
             prompt = prompt_builder.build_prompt(event)
             
@@ -52,8 +97,10 @@ class ImageGenerator:
                 generator=torch.Generator(device=self.device).manual_seed(seed)
             ).images[0]
             
-            # Guardar con nombre basado en el tiempo del evento
-            filename = f"{event['start_time']:.2f}s.png"
-            image.save(os.path.join(output_dir, filename))
+            # Guardar la imagen
+            image.save(filepath)
+            generated_count += 1
         
-        print(f"Images saved to: {output_dir}")
+        print(f"Imágenes generadas: {generated_count}/{len(events)}")
+        print(f"Imágenes guardadas en: {output_dir}")
+        return generated_count
