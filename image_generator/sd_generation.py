@@ -37,7 +37,7 @@ class ImageGenerator:
         base_seed = hash(events[0]["start_time"]) % 1000000
 
 
-        max_images = 50                                                                 #50 primeros eventos
+        max_images = 500                                                                 #50 primeros eventos
         print(f"Generando imágenes para {len(events)} eventos (límite: {max_images})")   
         
         # Contador para imágenes generadas

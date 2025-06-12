@@ -58,6 +58,7 @@ from lyrics_handler import LyricsHandler
 from album_processor import AlbumProcessor
 from image_generator import ImageGenerator
 from video_composer.text_renderer import TextRenderer
+from video_composer.video_export import VideoExporter
 import os
 
 def process_song(file_path: str, output_dir: str, style_preset="minimal_geometric"):
@@ -91,13 +92,21 @@ def process_song(file_path: str, output_dir: str, style_preset="minimal_geometri
     if events_with_lyrics:
         text_renderer = TextRenderer()
         text_renderer.process_image_directory(image_dir, events_with_lyrics)
+
+    # 7. Crear video final
+    video_exporter = VideoExporter()
+    
+    # Preparar ruta de salida
+    song_name = os.path.splitext(os.path.basename(file_path))[0]
+    output_video = os.path.join(output_dir, f"{song_name}_video.mp4")
+    
+    # Crear video
+    video_exporter.create_video(image_dir, file_path, events_with_lyrics, output_video)
     
     print("✅ Proceso completado exitosamente!")
-    return {
-        "audio_events": events_with_lyrics,
-        "color_palette": color_palette,
-        "image_dir": image_dir
-    }
+    print(f"🎬 Video exportado a: {output_video}")
+    return output_video
+
     
 
 if __name__ == "__main__":
@@ -110,4 +119,4 @@ if __name__ == "__main__":
     output_dir = os.path.splitext(os.path.basename(file_path))[0]
     
     result = process_song(file_path, output_dir, style)
-    print(f"Total eventos procesados: {len(result['audio_events'])}")
+    # print(f"Total eventos procesados: {len(result['audio_events'])}")
