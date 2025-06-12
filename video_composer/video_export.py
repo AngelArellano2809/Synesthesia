@@ -23,16 +23,36 @@ class VideoExporter:
         # 1. Preparar lista de imágenes con duraciones
         clips = self.prepare_clips(image_dir, events)
         
-        # 2. Crear clip de video
-        video_clip = ImageSequenceClip(
-            [clip['path'] for clip in clips],
-            durations=[clip['duration'] for clip in clips],
-            fps=self.fps
-        )
+        # # 2. Crear clip de video
+        # video_clip = ImageSequenceClip(
+        #     [clip['path'] for clip in clips],
+        #     durations=[clip['duration'] for clip in clips],
+        #     fps=self.fps
+        # )
+
+        # 2. Crear clip de video compuesto
+        video_clips = []
+        last_end = 0
+        
+        # Crear clips con duraciones exactas basadas en eventos
+        for clip in clips:
+            # Añadir espacio negro si hay un gap entre clips
+            if clip['start_time'] > last_end:
+                gap_duration = clip['start_time'] - last_end
+                gap_clip = self.create_black_clip(gap_duration)
+                video_clips.append(gap_clip)
+            
+            # Crear clip de imagen
+            img_clip = ImageClip(clip['path'], duration=clip['duration'])
+            video_clips.append(img_clip)
+            last_end = clip['start_time'] + clip['duration']
+        
+        # Combinar todos los clips
+        final_video = concatenate_videoclips(video_clips, method="compose")
         
         # 3. Añadir audio
         audio_clip = AudioFileClip(audio_path)
-        final_clip = video_clip.with_audio(audio_clip)
+        final_clip = final_video.with_audio(audio_clip)
         
         # 4. Exportar video
         print(f"Exportando video a {output_path}...")
@@ -63,38 +83,50 @@ class VideoExporter:
         
         # Si no encontramos imágenes, usar una imagen negra
         if not image_map:
-            print("⚠ No se encontraron imágenes. Usando fondo negro.")
-            black_image = self.create_black_image(1920, 1080)
-            return [{'path': black_image, 'duration': 10.0}]
+            return []
         
         # Preparar clips ordenados por tiempo
         clips = []
-        event_times = sorted(image_map.keys())
+        sorted_times = sorted(image_map.keys())
         
-        # Para cada evento, calcular la duración de la imagen
-        for i in range(len(event_times)):
-            start_time = event_times[i]
-            end_time = event_times[i + 1] if i < len(event_times) - 1 else start_time + 5.0
-            duration = end_time - start_time
+        # # Para cada evento, calcular la duración de la imagen
+        # for i in range(len(event_times)):
+        #     start_time = event_times[i]
+        #     end_time = event_times[i + 1] if i < len(event_times) - 1 else start_time + 5.0
+        #     duration = end_time - start_time
             
-            clips.append({
-                'path': image_map[start_time],
-                'duration': duration,
-                'start_time': start_time
-            })
+        #     clips.append({
+        #         'path': image_map[start_time],
+        #         'duration': duration,
+        #         'start_time': start_time
+        #     })
+        
+        # return clips
+
+        # Para cada tiempo de imagen, encontrar el evento correspondiente
+        for i, time_val in enumerate(sorted_times):
+            # Encontrar el evento que coincide con este tiempo
+            matching_event = next((e for e in events if abs(e['start_time'] - time_val) < 0.1), None)
+            
+            if matching_event:
+                # Calcular duración hasta el próximo evento
+                if i < len(sorted_times) - 1:
+                    next_time = sorted_times[i + 1]
+                    duration = next_time - time_val
+                else:
+                    # Para la última imagen, usar la duración restante
+                    duration = events[-1]['end_time'] - time_val
+                    if duration <= 0:
+                        duration = 5.0  # Duración por defecto
+                
+                clips.append({
+                    'path': image_map[time_val],
+                    'start_time': time_val,
+                    'duration': duration,
+                    'event': matching_event
+                })
         
         return clips
-    
-    def create_black_image(self, width: int, height: int) -> str:
-        """Crea una imagen negra temporal para usar cuando no hay imágenes"""
-        from PIL import Image
-        temp_path = os.path.join(os.getcwd(), "black_background.png")
-        if os.path.exists(temp_path):
-            return temp_path
-            
-        img = Image.new('RGB', (width, height), color='black')
-        img.save(temp_path)
-        return temp_path
 
     def add_transitions(self, clips: List[dict], transition_duration: float = 0.5) -> List[dict]:
         """Añade transiciones entre clips (opcional)"""
