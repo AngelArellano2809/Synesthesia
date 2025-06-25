@@ -9,14 +9,11 @@ class LyricsHandler:
     
     def process(self, audio_path: str, events: list) -> list:
         artist, title = self._get_metadata(audio_path)
-        # print(f'{artist}  /  {title}')
         result = self.fetcher.search_lyrics(artist, title)
+        if result is None:
+            return events
         lyrics = self._parse_lrc_to_events(result['syncedLyrics'])
-        # print(result['syncedLyrics'])
-        # for x in lyrics:
-        #     print(x)
         new_events = self._assign_lyrics_to_events(events, lyrics, 0.5)
-        # print(new_events)
         return new_events
     
     def _get_metadata(self, audio_path: str) -> tuple:

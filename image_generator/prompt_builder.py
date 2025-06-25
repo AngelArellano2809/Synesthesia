@@ -10,14 +10,12 @@ class PromptBuilder:
         
         # Elemento basado en el tipo de evento
         if event_data["type"] == "beat":
-            prompt_parts.append("rhythmic geometric composition")
+            prompt_parts.append("rhythmic geometric, pulsating forms")
         elif event_data["type"] == "onset":
-            prompt_parts.append("dynamic transition effect")
-        elif event_data["type"] == "lyric":
-            prompt_parts.append("text-focused composition")
+            prompt_parts.append("dynamic transition, energy burst")
             
         # Textura y calidad
-        prompt_parts.append(self.style_preset["texture"])
+        prompt_parts.append(self.style_preset["composition"])
         prompt_parts.append(self.style_preset["quality_boost"])
         
         # Intensidad del evento
@@ -25,17 +23,20 @@ class PromptBuilder:
         if intensity > 0.7:
             prompt_parts.append("high contrast, dramatic lighting")
         elif intensity < 0.3:
-            prompt_parts.append("soft focus, muted tones")
+            prompt_parts.append("soft focus, minimalistic") #
         
-        # Paleta de colores si está disponible
-        if self.color_palette:
-            color_part = f"color palette: {', '.join(self.color_palette['hex_colors'][:3])}"
-            prompt_parts.append(color_part)
-        
-        # Texto de la letra si existe
+        # Paleta de colores
+        if self.color_palette and self.color_palette.get("prompt_description"):
+            prompt_parts.append(self.color_palette["prompt_description"])
+
+        # Añadir énfasis a elementos clave
         if event_data.get("lyric"):
-            # Limitar la longitud del texto para no saturar
-            lyric = event_data["lyric"][:50].replace('"', '').replace("'", "")
-            prompt_parts.append(f"featuring text: '{lyric}'")
-        
-        return ", ".join(prompt_parts)
+            lyric = event_data["lyric"][:30]
+            prompt_parts.append(f"interpretation of phrase: '{lyric}'")
+
+        # Usar ponderación para elementos importantes
+        prompt = ", ".join(prompt_parts)
+        # prompt += ", abstract"
+
+        # print(prompt)        
+        return prompt

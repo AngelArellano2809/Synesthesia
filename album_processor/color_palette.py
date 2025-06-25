@@ -1,8 +1,9 @@
 import numpy as np
 from sklearn.cluster import KMeans
 from PIL import Image
-import matplotlib.colors as mcolors
-import webcolors
+import requests
+import time
+from typing import List, Dict, Optional
 
 class ColorPaletteExtractor:
     def __init__(self, n_colors=5, resize=(200, 200)):
@@ -43,13 +44,20 @@ class ColorPaletteExtractor:
         sorted_indices = np.argsort(counts)[::-1]
         sorted_colors = colors[sorted_indices]
         
-        # 6. Convertir a diferentes formatos
+        # 6. Convertir a HEX
         hex_colors = [self.rgb_to_hex(color) for color in sorted_colors]
+
+        # 7. Obtener nombres de colores
+        color_names = []
+        for color in hex_colors:
+            name = self.get_color_name(color)
+            if name:
+                color_names.append(name)
         
         return {
             'hex_colors': hex_colors,
             'rgb_colors': [tuple(color) for color in sorted_colors],
-            'prompt_description': self.create_prompt_description(hex_colors)
+            'prompt_description': self.create_prompt_description(color_names)
         }
     
     @staticmethod
@@ -57,6 +65,23 @@ class ColorPaletteExtractor:
         """Convierte un color RGB a formato HEX"""
         return '#{:02x}{:02x}{:02x}'.format(rgb[0], rgb[1], rgb[2])
     
+    def get_color_name(self, hex_color: str, max_retries=3) -> Optional[str]:
+        """Obtiene el nombre del color usando The Color API con manejo de errores"""
+        hex_code = hex_color.lstrip('#')
+        if not hex_code:
+            return None
+        
+        api_url = f"https://www.thecolorapi.com/id?hex={hex_code}"
+        
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(api_url, timeout=5)
+                if response.status_code == 200:
+                    data = response.json()
+                    color_name = data['name']['value']
+                    return color_name
+            except (requests.RequestException, KeyError):
+                time.sleep(0.5 * (attempt + 1))  # Espera exponencial
     
     def create_prompt_description(self, color_names: list) -> str:
         """Crea una descripción de paleta para prompts de Stable Diffusion"""

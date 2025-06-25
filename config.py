@@ -1,17 +1,9 @@
 class Config:
     AUDIO = {
-        'sr': 22050,  #librosa
-        'WHISPER_SR': 16000,  # Sample rate óptimo para Whisper
+        'sr': 22050, 
+        'WHISPER_SR': 16000, 
         'hop_length': 512, 
         'min_event_interval': 0.5,
-        'onset_params': {
-            'pre_max': 20,
-            'post_max': 20,
-            'pre_avg': 100,
-            'post_avg': 100,
-            'delta': 0.2,
-            'wait': 10
-        }
     }
     RENDERING = {
         'fps': 24,
