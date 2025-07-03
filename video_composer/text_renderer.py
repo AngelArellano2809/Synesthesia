@@ -28,8 +28,7 @@ class ArtisticTextRenderer:
     def calculate_text_bbox(self, text: str, font: ImageFont.FreeTypeFont) -> Tuple[int, int, int, int]:
         """Calcula el cuadro delimitador del texto"""
         # Usar un método más preciso para obtener el bbox
-        left, top, right, bottom = font.getbbox(text)
-        return left, top, right, bottom
+        return font.getbbox(text)
     
     def calculate_text_size(self, text: str, font: ImageFont.FreeTypeFont) -> Tuple[int, int]:
         """Calcula ancho y alto del texto"""
@@ -45,34 +44,36 @@ class ArtisticTextRenderer:
             if text_width <= max_width and text_height <= max_height:
                 return font_size
             font_size -= 2
-        return font_size
+        return max(10, font_size)  # Tamaño mínimo
     
     def get_template_id(self, text: str) -> int:
         """Genera un ID de plantilla consistente para el mismo texto"""
         # Usar hash del texto para que la misma estrofa siempre tenga la misma plantilla
         return int(hashlib.sha256(text.encode()).hexdigest(), 16) % 8
     
-    def get_text_position(self, template_id: int, img_width: int, img_height: int, text_width: int, text_height: int) -> Tuple[int, int, str]:
-        """Obtiene la posición y alineación basada en la plantilla"""
-        # Plantillas de diseño
+    def get_text_position_and_anchor(self, template_id: int, img_width: int, img_height: int) -> Tuple[Tuple[int, int], str]:
+        """Obtiene la posición y código de anclaje basado en la plantilla"""
+        # Códigos de anclaje válidos: 
+        # Primer carácter: 'l' (left), 'm' (middle), 'r' (right)
+        # Segundo carácter: 'a' (ascender/top), 'm' (middle), 'd' (descender/bottom)
         if template_id == 0:  # Centro dominante
-            return (img_width // 2, img_height // 3), "center"
+            return (img_width // 2, img_height // 3), 'mm'
         elif template_id == 1:  # Centro inferior
-            return (img_width // 2, img_height - img_height // 4), "center"
+            return (img_width // 2, img_height - img_height // 4), 'md'
         elif template_id == 2:  # Diagonal superior izquierda
-            return (img_width // 6, img_height // 4), "left"
+            return (img_width // 6, img_height // 4), 'la'
         elif template_id == 3:  # Diagonal inferior derecha
-            return (img_width - img_width // 6, img_height - img_height // 4), "right"
+            return (img_width - img_width // 6, img_height - img_height // 4), 'rd'
         elif template_id == 4:  # Izquierda centro
-            return (img_width // 10, img_height // 2), "left"
+            return (img_width // 10, img_height // 2), 'lm'
         elif template_id == 5:  # Derecha centro
-            return (img_width - img_width // 10, img_height // 2), "right"
+            return (img_width - img_width // 10, img_height // 2), 'rm'
         elif template_id == 6:  # Superior centro con ángulo
-            return (img_width // 2, img_height // 5), "center"
+            return (img_width // 2, img_height // 5), 'ma'
         else:  # Aleatorio dentro de márgenes
             x = random.randint(img_width // 10, img_width - img_width // 10)
             y = random.randint(img_height // 5, img_height - img_height // 3)
-            return (x, y), "center"
+            return (x, y), 'mm'
     
     def get_text_color(self, palette: List[str], position: Tuple[int, int], img: Image.Image) -> Tuple[int, int, int, int]:
         """Determina el color del texto basado en la paleta y la posición en la imagen"""
@@ -93,21 +94,38 @@ class ArtisticTextRenderer:
         # Fallback: color blanco con transparencia
         return (255, 255, 255, 255)
     
-    def apply_text_effects(self, draw: ImageDraw.Draw, position: Tuple[int, int], text: str, font: ImageFont.FreeTypeFont, text_color: Tuple[int, int, int, int], alignment: str = "center"):
-        """Aplica efectos de texto (borde, sombra)"""
-        x, y = position
+    def create_shadow_effect(self, text_image: Image.Image, blur_radius: int = 3) -> Image.Image:
+        """Crea un efecto de sombra para el texto"""
+        # Crear máscara de alpha
+        alpha = text_image.split()[3]
+        blurred_alpha = alpha.filter(ImageFilter.GaussianBlur(blur_radius))
+        
+        # Crear imagen de sombra (negro con alpha difuminado)
+        shadow = Image.new('RGBA', text_image.size, (0, 0, 0, 0))
+        shadow.putalpha(blurred_alpha)
+        return shadow
+    
+    def apply_text_effects(self, draw: ImageDraw.Draw, position: Tuple[int, int], text: str, 
+                          font: ImageFont.FreeTypeFont, text_color: Tuple[int, int, int, int], 
+                          anchor: str = 'mm'):
+        """Aplica efectos de texto (borde, sombra) con anclaje válido"""
+        # Validar anchor
+        if len(anchor) != 2 or anchor[0] not in ['l', 'm', 'r'] or anchor[1] not in ['a', 'm', 'd']:
+            anchor = 'mm'  # Default seguro
+
         # Color de borde (contrario al texto)
         border_color = (0, 0, 0, 255) if sum(text_color[:3]) > 384 else (255, 255, 255, 255)
-        border_width = 2
+        border_width = max(2, font.size // 20) 
         
         # Dibujar borde
         for dx in [-border_width, 0, border_width]:
             for dy in [-border_width, 0, border_width]:
                 if dx != 0 or dy != 0:
-                    draw.text((x+dx, y+dy), text, font=font, fill=border_color, anchor=alignment)
+                    draw.text((position[0] + dx, position[1] + dy), text, 
+                             font=font, fill=border_color, anchor=anchor)
         
         # Dibujar texto principal
-        draw.text(position, text, font=font, fill=text_color, anchor=alignment)
+        draw.text(position, text, font=font, fill=text_color, anchor=anchor)
     
     def render_lyric_artistically(self, image_path: str, text: str, output_path: str = None, palette: Optional[List[str]] = None):
         """Añade texto artístico a una imagen existente con efectos avanzados"""
@@ -118,8 +136,11 @@ class ArtisticTextRenderer:
             output_path = image_path
             
         try:
-            # Abrir imagen
-            img = Image.open(image_path).convert('RGBA')
+            # Abrir imagen y asegurar modo RGBA
+            img = Image.open(image_path)
+            if img.mode != 'RGBA':
+                img = img.convert('RGBA')
+            
             width, height = img.size
             
             # Obtener ID de plantilla basado en el texto
@@ -130,12 +151,9 @@ class ArtisticTextRenderer:
             max_text_height = height * 0.15
             font_size = self.calculate_optimal_font_size(text, max_text_width, max_text_height)
             font = self.load_font(font_size)
-            
-            # Calcular dimensiones del texto
-            text_width, text_height = self.calculate_text_size(text, font)
-            
-            # Obtener posición y alineación
-            position, alignment = self.get_text_position(template_id, width, height, text_width, text_height)
+
+            # Obtener posición y código de anclaje
+            position, anchor = self.get_text_position_and_anchor(template_id, width, height)
             
             # Obtener color del texto
             text_color = self.get_text_color(palette, position, img)
@@ -145,18 +163,14 @@ class ArtisticTextRenderer:
             draw = ImageDraw.Draw(txt_layer)
             
             # Aplicar efectos de texto
-            self.apply_text_effects(draw, position, text, font, text_color, alignment)
+            self.apply_text_effects(draw, position, text, font, text_color, anchor)
             
-            # Opcional: añadir sombra suave
-            shadow_layer = txt_layer.copy()
-            shadow_layer = shadow_layer.filter(ImageFilter.GaussianBlur(radius=3))
-            shadow_layer = ImageOps.colorize(shadow_layer.convert('L'), (0, 0, 0, 0), (0, 0, 0, 180))
-            
-            # Combinar capas: sombra + texto
-            combined_txt = Image.alpha_composite(shadow_layer, txt_layer)
-            
-            # Combinar con imagen original
-            final_image = Image.alpha_composite(img, combined_txt)
+            # Crear efecto de sombra
+            shadow_layer = self.create_shadow_effect(txt_layer)
+
+            # Combinar capas: fondo + sombra + texto
+            final_image = Image.alpha_composite(img, shadow_layer)
+            final_image = Image.alpha_composite(final_image, txt_layer)
             
             # Guardar resultado
             final_image.save(output_path)
@@ -169,13 +183,17 @@ class ArtisticTextRenderer:
     def process_image_directory(self, image_dir: str, events: List[Dict], palette: Optional[List[str]] = None):
         """Procesa todas las imágenes en un directorio basado en los eventos"""
         # Crear un mapa de texto por tiempo para búsqueda rápida
-        text_map = {e['start_time']: e.get('lyric', '') for e in events}
+        text_map = {}
+        for e in events:
+            lyric = e.get('lyric', '')
+            if lyric.strip():
+                text_map[e['start_time']] = lyric
         
         # Procesar cada imagen en el directorio
         for filename in os.listdir(image_dir):
             if filename.endswith(('.png', '.jpg')):
-                # Extraer tiempo del nombre de archivo
                 try:
+                    # Extraer tiempo del nombre de archivo
                     time_str = filename.split('s')[0]
                     event_time = float(time_str)
                     
