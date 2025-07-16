@@ -1,5 +1,5 @@
-from ui_new_song import *
-import homewindow
+from ui.ui_new_song import *
+import ui.homewindow
 
 #from PySide6.QtWidgets import QMainWindow
 from PySide6.QtCore import Slot
@@ -17,6 +17,6 @@ class NewSongWindow(QMainWindow):
     @Slot( )
     def home(self):
         global new
-        new = homewindow.HomeWindow()
+        new = ui.homewindow.HomeWindow()
         new.show()
         self.hide()

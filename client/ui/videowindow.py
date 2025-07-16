@@ -1,6 +1,6 @@
-from ui_video import *
-import homewindow
-import detailswindow
+from ui.ui_video import *
+import ui.homewindow
+import ui.detailswindow
 
 #from PySide6.QtWidgets import QMainWindow
 from PySide6.QtCore import Slot
@@ -19,13 +19,13 @@ class VideoWindow(QMainWindow):
     @Slot( )
     def home(self):
         global new
-        new = homewindow.HomeWindow()
+        new = ui.homewindow.HomeWindow()
         new.show()
         self.hide()
 
     @Slot( )
     def details(self):
         global det
-        det = detailswindow.DetailsWindow()
+        det = ui.detailswindow.DetailsWindow()
         det.show()
         self.hide()

@@ -3,7 +3,7 @@ import re
 from typing import List
 from moviepy import *
 from moviepy.video.io.ImageSequenceClip import ImageSequenceClip
-from config import Config
+from server.core.config import Config
 
 class VideoExporter:
     def __init__(self, fps: int = None):

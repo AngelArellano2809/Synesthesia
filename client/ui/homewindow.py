@@ -1,6 +1,6 @@
-from ui_home import *
-import newsongwindow
-import videowindow
+from ui.ui_home import *
+import ui.newsongwindow
+import ui.videowindow
 
 #from PySide6.QtWidgets import QMainWindow
 from PySide6.QtCore import Slot
@@ -19,14 +19,14 @@ class HomeWindow(QMainWindow):
     @Slot( )
     def newSong(self):
         global new
-        new = newsongwindow.NewSongWindow()
+        new = ui.newsongwindow.NewSongWindow()
         new.show()
         self.hide()
 
     @Slot( )
     def video(self):
         global vid
-        vid = videowindow.VideoWindow()
+        vid = ui.videowindow.VideoWindow()
         vid.show()
         self.hide()
 

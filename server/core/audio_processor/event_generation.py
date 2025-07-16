@@ -1,6 +1,6 @@
 import numpy as np
 from typing import List, Dict, Any
-from config import Config
+from server.core.config import Config
 from .beat_detection import AudioAnalyzer
 import librosa
 

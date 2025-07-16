@@ -3,7 +3,7 @@ import librosa
 from librosa.feature.rhythm import tempo as estimate_tempo
 import numpy as np
 from typing import List, Tuple
-from config import Config
+from server.core.config import Config
 
 class AudioAnalyzer:
     def __init__(self):

@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QApplication
-from homewindow import HomeWindow
+from ui.homewindow import HomeWindow
 import sys
 
 app = QApplication(sys.argv)
