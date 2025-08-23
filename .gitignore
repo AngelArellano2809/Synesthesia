@@ -7,3 +7,4 @@ notas.txt
 *.pyc
 *.png
 *.mp4
+server/database/synesthesia.db

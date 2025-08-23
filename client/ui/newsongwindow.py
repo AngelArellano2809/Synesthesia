@@ -1,7 +1,7 @@
 from ui.ui_new_song import *
 import ui.homewindow
+from client_api import VideoProcessingThread
 
-import os
 import requests
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QFileDialog, QMessageBox
@@ -17,23 +17,56 @@ from PySide6.QtCore import Slot
 class NewSongWindow(QMainWindow):
     def __init__(self):
         QMainWindow.__init__(self)
-
         self.ui = Ui_NewSongWindow()
         self.ui.setupUi(self)
-
 
         # Variables
         self.mp3_path = ""
         self.server_url = "http://localhost:8000"
         self.job_id = ""
-        self.timer = QTimer()
+        self.selected_preset = None
+
+        self.setup_presets()
         
         # Conexiones
         self.ui.back_pushButton.clicked.connect(self.home)
         self.ui.file_pushButton.clicked.connect(self.select_file)
         self.ui.add_pushButton.clicked.connect(self.process_song)
-        self.timer.timeout.connect(self.check_progress)
-        self.ui.btn_cancel.clicked.connect(self.close)
+        self.ui.back_pushButton_2.clicked.connect(self.close)
+
+    def setup_presets(self):
+        """Configura los radio buttons de presets"""
+        
+        # Mapeo de nombres amigables a nombres técnicos
+        self.preset_mapping = {
+            "Minimal Geometric": "minimal_geometric",
+            "Organic Abstract": "organic_abstract",
+            "Digital Futuristic": "digital_futuristic",
+            "Psychedelic Experience": "vibrant_abstract",
+            "Cyberpunk Neon": "digital_minimalism",
+            "Ethereal Dream": "liquid_motion"
+        }
+        
+        # Configurar los radio buttons con nombres amigables
+        self.ui.preset1_radioButton.setText("Minimal Geometric")
+        self.ui.preset2_radioButton.setText("Organic Abstract")
+        self.ui.preset3_radioButton.setText("Digital Futuristic")
+        self.ui.preset4_radioButton.setText("Psychedelic Experience")
+        self.ui.preset5_radioButton.setText("Cyberpunk Neon")
+        self.ui.preset6_radioButton.setText("Ethereal Dream")
+        
+        # Conectar los radio buttons
+        self.preset_buttons = {
+            "minimal_geometric": self.ui.preset1_radioButton,
+            "organic_abstract": self.ui.preset2_radioButton,
+            "digital_futuristic": self.ui.preset3_radioButton,
+            "vibrant_abstract": self.ui.preset4_radioButton,
+            "digital_minimalism": self.ui.preset5_radioButton,
+            "liquid_motion": self.ui.preset6_radioButton
+        }
+        
+        for preset_name, button in self.preset_buttons.items():
+            button.toggled.connect(self.on_preset_changed)
 
     @Slot( )
     def select_file(self):
@@ -69,127 +102,84 @@ class NewSongWindow(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Error", f"No se pudieron leer metadatos: {str(e)}")
 
+    def on_preset_changed(self, checked):
+        """Maneja el cambio de selección de preset"""
+        if checked:
+            for preset_name, button in self.preset_buttons.items():
+                if button.isChecked():
+                    self.selected_preset = preset_name
+                    break
+
     @Slot( )
     def process_song(self):
         if not self.mp3_path:
             QMessageBox.warning(self, "Error", "Selecciona un archivo primero")
             return
+
+        # Obtener el preset seleccionado
+        if not self.selected_preset:
+            QMessageBox.warning(self, "Error", "Selecciona un preset primero")
+            return
         
-        preset = self.ui.preset_combo.currentText()
+        preset = self.selected_preset
         
-        try:
-            # Configurar UI para procesamiento
-            self.ui.progress_bar.setRange(0, 0)  # Barra indeterminada
-            self.ui.label_status.setText("Enviando al servidor...")
-            
-            # Enviar al servidor
-            with open(self.mp3_path, "rb") as f:
-                response = requests.post(
-                    f"{self.server_url}/create_video",
-                    files={"mp3": f},
-                    data={"preset": preset}
-                )
-            
-            if response.status_code != 200:
-                raise Exception(f"Error del servidor: {response.text}")
-            
-            response_data = response.json()
-            self.job_id = response_data["job_id"]
-            
-            # Iniciar monitoreo
-            self.ui.label_status.setText("Procesando en servidor...")
-            self.timer.start(3000)  # Verificar cada 3 segundos
+        # Obtener URL del servidor 
+        server_url = "http://localhost:8000"  
         
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Fallo al procesar: {str(e)}")
-            self.reset_ui()
+        # Crear y configurar hilo
+        self.processing_thread = VideoProcessingThread(
+            server_url=server_url,
+            mp3_path=self.mp3_path,
+            preset=preset
+        )
+        
+        # Conectar señales
+        self.processing_thread.progress_updated.connect(self.update_progress)
+        self.processing_thread.finished.connect(self.on_processing_finished)
+        self.processing_thread.error_occurred.connect(self.on_processing_error)
+        
+        # Actualizar UI
+        self.ui.progressBar.setRange(0, 100)
+        self.ui.progressBar.setValue(0)
+        self.ui.add_pushButton.setEnabled(False)
+        self.ui.back_pushButton_2.setEnabled(True)
+        self.ui.back_pushButton_2.clicked.connect(self.cancel_processing)
+        
+        # Iniciar procesamiento
+        self.processing_thread.start()
     
-    def check_progress(self):
-        try:
-            response = requests.get(f"{self.server_url}/video/{self.job_id}")
-            
-            if response.status_code == 200:
-                # Video está listo
-                if response.headers['Content-Type'] == 'video/mp4':
-                    self.download_video(response.content)
-                    return
-                
-                # Todavía procesando
-                status_data = response.json()
-                if status_data.get("status") == "completed":
-                    self.download_video_by_id()
-            
-            elif response.status_code == 202:
-                # Todavía procesando
-                progress = response.json().get("progress", 0)
-                self.ui.progress_bar.setValue(progress)
-                self.ui.label_status.setText(f"Procesando... {progress}%")
-            
-            else:
-                raise Exception(f"Estado inesperado: {response.status_code}")
-        
-        except Exception as e:
-            self.timer.stop()
-            QMessageBox.critical(self, "Error", f"Fallo al verificar progreso: {str(e)}")
-            self.reset_ui()
-    
-    def download_video_by_id(self):
-        try:
-            response = requests.get(f"{self.server_url}/video/{self.job_id}")
-            if response.status_code == 200:
-                self.download_video(response.content)
-            else:
-                raise Exception(f"Error descargando video: {response.status_code}")
-        except Exception as e:
-            QMessageBox.critical(self, "Error", str(e))
-            self.reset_ui()
-    
-    def download_video(self, video_data):
-        try:
-            # Crear directorio si no existe
-            video_dir = Path.home() / "SynesthesiaVideos"
-            video_dir.mkdir(exist_ok=True)
-            
-            # Guardar video
-            video_path = video_dir / f"{self.job_id}.mp4"
-            with open(video_path, "wb") as f:
-                f.write(video_data)
-            
-            # Guardar metadatos
-            metadata = {
-                "title": self.ui.label_title.text(),
-                "artist": self.ui.label_artist.text(),
-                "album": self.ui.label_album.text(),
-                "preset": self.ui.preset_combo.currentText(),
-                "server_job_id": self.job_id,
-                "source_file": self.mp3_path
-            }
-            
-            metadata_path = video_dir / f"{self.job_id}.syn"
-            with open(metadata_path, "w") as f:
-                import json
-                json.dump(metadata, f)
-            
-            # Notificar éxito
+    def update_progress(self, progress, status):
+        self.ui.progressBar.setValue(progress)
+        self.ui.label_status.setText(status)
+
+    def on_processing_finished(self, video_path, success):
+        if success:
+            self.ui.progressBar.setValue(100)
             self.ui.label_status.setText("¡Video generado con éxito!")
-            self.ui.progress_bar.setRange(0, 100)
-            self.ui.progress_bar.setValue(100)
             
-            # Notificar a HomeWindow
+            # Añadir a la lista de videos
             if self.parent():
-                self.parent().add_new_video(video_path, metadata)
+                self.parent().add_new_video(video_path)
             
             QTimer.singleShot(2000, self.close)
-        
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Fallo al guardar: {str(e)}")
-            self.reset_ui()
-    
+        else:
+            self.ui.label_status.setText("Error generando video")
+
+    def on_processing_error(self, error_msg):
+        QMessageBox.critical(self, "Error", error_msg)
+        self.reset_ui()
+
+    def cancel_processing(self):
+        if self.processing_thread and self.processing_thread.isRunning():
+            self.processing_thread.stop()
+            self.processing_thread.wait()
+        self.reset_ui()
+
     def reset_ui(self):
-        self.timer.stop()
-        self.ui.progress_bar.setRange(0, 100)
-        self.ui.progress_bar.setValue(0)
+        self.ui.progressBar.setValue(0)
         self.ui.label_status.setText("Listo")
+        self.ui.add_pushButton.setEnabled(True)
+        self.ui.back_pushButton_2.setEnabled(False)
 
     @Slot( )
     def home(self):

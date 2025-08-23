@@ -1,55 +1,94 @@
 import requests
-import os
 from pathlib import Path
-from tqdm import tqdm
-import hashlib
+from PySide6.QtCore import QThread, Signal
+import time
 
-class SynesthesiaClient:
-    def __init__(self, server_url="http://192.168.1.X:8000"):
+class VideoProcessingThread(QThread):
+    progress_updated = Signal(int, str)  # progress, status
+    finished = Signal(str, bool)  # video_path, success
+    error_occurred = Signal(str)
+
+    def __init__(self, server_url, mp3_path, preset, parent=None):
+        super().__init__(parent)
         self.server_url = server_url
-        self.local_storage = Path.home() / "SynesthesiaVideos"
-        self.local_storage.mkdir(exist_ok=True)
-    
-    def create_video(self, mp3_path: str, preset: str) -> str:
-        """Envía un MP3 al servidor y devuelve el job_id"""
-        with open(mp3_path, "rb") as f:
-            mp3_bytes = f.read()
-        
-        mp3_hash = hashlib.sha256(mp3_bytes).hexdigest()
-        files = {"mp3": (os.path.basename(mp3_path), mp3_bytes)}
-        
-        response = requests.post(
-            f"{self.server_url}/create_video",
-            files=files,
-            data={"preset": preset}
-        )
-        
-        return response.json()["job_id"]
-    
-    def download_video(self, job_id: str, metadata: dict = None):
-        """Descarga el video completado y guarda metadatos"""
-        video_path = self.local_storage / f"{job_id}.mp4"
-        metadata_path = self.local_storage / f"{job_id}.syn"
-        
-        # Descargar video
-        response = requests.get(f"{self.server_url}/video/{job_id}", stream=True)
-        total_size = int(response.headers.get("content-length", 0))
-        
-        with open(video_path, "wb") as f, tqdm(
-            desc=video_path.name,
-            total=total_size,
-            unit="iB",
-            unit_scale=True,
-            unit_divisor=1024,
-        ) as bar:
-            for data in response.iter_content(chunk_size=1024):
-                size = f.write(data)
-                bar.update(size)
-        
-        # Guardar metadatos
-        if metadata:
-            import json
-            with open(metadata_path, "w") as f:
-                json.dump(metadata, f)
-        
-        return video_path
+        self.mp3_path = mp3_path
+        self.preset = preset
+        self.job_id = None
+        self.running = True
+
+    def run(self):
+        try:
+            # Depuración: verificar qué se está enviando
+            print(f"Enviando MP3: {self.mp3_path}")
+            print(f"Enviando preset: {self.preset}")
+            
+            # Paso 1: Subir MP3 y crear trabajo
+            with open(self.mp3_path, 'rb') as f:
+                files = {'mp3': f}
+                data = {'preset': self.preset}
+
+                # Depuración: mostrar URL y datos
+                print(f"URL: {self.server_url}/create_video")
+                print(f"Datos: {data}")
+                
+                response = requests.post(
+                    f"{self.server_url}/create_video",
+                    files=files,
+                    data=data
+                )
+            
+            if response.status_code != 202:
+                self.error_occurred.emit(f"Error del servidor: {response.text}")
+                return
+            
+            response_data = response.json()
+            self.job_id = response_data['job_id']
+            self.progress_updated.emit(0, "En cola")
+            
+            # Paso 2: Monitorear progreso
+            while self.running:
+                status_response = requests.get(f"{self.server_url}/status/{self.job_id}")
+                
+                if status_response.status_code != 200:
+                    self.error_occurred.emit(f"Error obteniendo estado: {status_response.text}")
+                    return
+                
+                status_data = status_response.json()
+                status = status_data['status']
+                progress = status_data['progress']
+                
+                self.progress_updated.emit(progress, status)
+                
+                if status == "completed":
+                    break
+                elif "failed" in status:
+                    self.error_occurred.emit(f"Error en el servidor: {status}")
+                    return
+                
+                time.sleep(2)  # Esperar antes de la próxima verificación
+            
+            # Paso 3: Descargar video
+            video_response = requests.get(f"{self.server_url}/video/{self.job_id}", stream=True)
+            
+            if video_response.status_code != 200:
+                self.error_occurred.emit(f"Error descargando video: {video_response.status_code}")
+                return
+            
+            # Guardar video localmente
+            video_dir = Path.home() / "SynesthesiaVideos"
+            video_dir.mkdir(exist_ok=True)
+            video_path = video_dir / f"synesthesia_{self.job_id}.mp4"
+            
+            with open(video_path, 'wb') as f:
+                for chunk in video_response.iter_content(chunk_size=8192):
+                    if not self.running:
+                        return  # Cancelar si se detuvo
+                    f.write(chunk)
+            
+            self.finished.emit(str(video_path), True)
+            
+        except Exception as e:
+            self.error_occurred.emit(f"Error inesperado: {str(e)}")
+
+    def stop(self):
+        self.running = False
