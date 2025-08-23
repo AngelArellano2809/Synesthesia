@@ -111,12 +111,25 @@ def download_video(job_id: str):
 def process_video_background(job_id: str, mp3_path: str, preset: str, output_path: str):
     try:
         # Actualizar estado a procesando
-        update_job_status(job_id, "processing", 0)
-        
-        from synesthesia import process_song
-        
-        # Creacion de video
-        process_song(mp3_path, output_path, preset)
+        update_job_status(job_id, "processing", 10)
+
+        # Importar y usar tu lógica real de generación
+        try:
+            from synesthesia import process_song
+            
+            # Creacion de video
+            process_song(mp3_path, output_path, preset)
+            
+            # Actualizar estado a completado
+            update_job_status(job_id, "completed", 50)
+        except ImportError as e:
+            error_msg = f"Error de importación: {str(e)}"
+            update_job_status(job_id, f"failed: {error_msg}", 0)
+            return
+        except Exception as e:
+            error_msg = f"Error en procesamiento: {str(e)}"
+            update_job_status(job_id, f"failed: {error_msg}", 0)
+            return
         
         # Actualizar estado a completado
         update_job_status(job_id, "completed", 100)

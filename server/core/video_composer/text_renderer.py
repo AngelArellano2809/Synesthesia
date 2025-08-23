@@ -2,7 +2,7 @@ import os
 import hashlib
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageFilter
 from typing import List, Dict, Tuple, Optional
-from server.core.config import Config
+from core.config import Config
 import random
 
 class ArtisticTextRenderer:
