@@ -5,15 +5,6 @@ class Config:
         'hop_length': 512, 
         'min_event_interval': 0.5,
     }
-    RENDERING = {
-        'fps': 24,
-        'transition_duration': 0.5  # Duración de transiciones entre imágenes
-    }
-    STYLE = {
-        'color_scheme': ['dominant', 'complementary', 'random'],
-        'shapes': ['circles', 'squares', 'triangles'],
-        'transitions': ['fade', 'slide', 'zoom']
-    }
     
     TEXT_RENDERING = {
         'DEFAULT_FONT': 'assets/fonts/Montserrat/Montserrat-VariableFont_wght.ttf', 

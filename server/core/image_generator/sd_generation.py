@@ -4,12 +4,10 @@ from .config import ImageGenConfig
 from .prompt_builder import PromptBuilder
 import os
 from tqdm import tqdm
+from pathlib import Path
 
 class ImageGenerator:
-    def __init__(self, model_path=None, device="cuda", torch_dtype=torch.float16):
-        self.model_path = model_path or ImageGenConfig.DEFAULT_MODEL
-        self.device = device
-        self.torch_dtype = torch_dtype
+    def __init__(self):
         self.pipe = self._load_model()
         self.refiner = self._load_model_refiner()
     
@@ -24,17 +22,6 @@ class ImageGenerator:
         # Optimizaciones
         pipe.enable_model_cpu_offload()
         pipe.enable_vae_slicing()
-
-        # print(f"Loading model from: {self.model_path}")
-        # pipe = StableDiffusionXLPipeline.from_pretrained(
-        #     self.model_path,
-        #     torch_dtype=self.torch_dtype,
-        #     use_safetensors=True
-        # ).to(self.device)
-        
-        # # Optimizaciones para ahorrar memoria
-        # pipe.enable_model_cpu_offload()
-        # pipe.enable_vae_slicing()
         
         return pipe
     
@@ -58,7 +45,7 @@ class ImageGenerator:
         base_seed = hash(events[0]["start_time"]) % 1000000
 
 
-        max_images = 500                                                                 #50 primeros eventos
+        max_images = 500    #limite de imagenes
         print(f"Generando imágenes para {len(events)} eventos (límite: {max_images})")   
         
         # Contador para imágenes generadas
@@ -89,7 +76,7 @@ class ImageGenerator:
                 prompt=prompt,
                 negative_prompt=ImageGenConfig.DEFAULT_NEGATIVE_PROMPT,
                 num_inference_steps=ImageGenConfig.DEFAULT_STEPS,
-                generator=torch.Generator(device=self.device).manual_seed(seed)
+                generator=torch.Generator(device="cuda").manual_seed(seed)
             ).images[0]
 
             refined_image = self.refiner(prompt=prompt, image=image).images[0]

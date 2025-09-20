@@ -13,7 +13,7 @@ class CoverExtractor:
         try:
             audio = MP3(mp3_path, ID3=ID3)
             
-            # Buscar todas las imágenes (puede haber varias)
+            # Buscar todas las imágenes
             images = []
             for tag in audio.tags.values():
                 if isinstance(tag, APIC):
@@ -22,7 +22,7 @@ class CoverExtractor:
             if not images:
                 return None
                 
-            # Seleccionar la imagen de mayor tamaño (asumimos que es la portada)
+            # Seleccionar la imagen de mayor tamaño (Portada)
             largest_image = max(images, key=lambda img: len(img.data))
             
             # Determinar extensión

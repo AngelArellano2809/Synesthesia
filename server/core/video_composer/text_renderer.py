@@ -2,7 +2,7 @@ import os
 import hashlib
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageFilter
 from typing import List, Dict, Tuple, Optional
-from core.config import Config
+from ..config import Config
 import random
 
 class ArtisticTextRenderer:
@@ -38,13 +38,13 @@ class ArtisticTextRenderer:
     def calculate_optimal_font_size(self, text: str, max_width: int, max_height: int) -> int:
         """Calcula el tamaño de fuente máximo que cabe en el área designada"""
         font_size = self.base_font_size
-        while font_size > 10:
+        while font_size > 15:
             font = self.load_font(font_size)
             text_width, text_height = self.calculate_text_size(text, font)
             if text_width <= max_width and text_height <= max_height:
                 return font_size
             font_size -= 2
-        return max(10, font_size)  # Tamaño mínimo
+        return max(15, font_size)  # Tamaño mínimo
     
     def get_template_id(self, text: str) -> int:
         """Genera un ID de plantilla consistente para el mismo texto"""
@@ -53,9 +53,6 @@ class ArtisticTextRenderer:
     
     def get_text_position_and_anchor(self, template_id: int, img_width: int, img_height: int) -> Tuple[Tuple[int, int], str]:
         """Obtiene la posición y código de anclaje basado en la plantilla"""
-        # Códigos de anclaje válidos: 
-        # Primer carácter: 'l' (left), 'm' (middle), 'r' (right)
-        # Segundo carácter: 'a' (ascender/top), 'm' (middle), 'd' (descender/bottom)
         if template_id == 0:  # Centro dominante
             return (img_width // 2, img_height // 3), 'mm'
         elif template_id == 1:  # Centro inferior
@@ -204,7 +201,7 @@ class ArtisticTextRenderer:
                     # Procesar imagen
                     image_path = os.path.join(image_dir, filename)
                     self.render_lyric_artistically(image_path, text, palette=palette)
-                    print(f"Texto artístico añadido a {filename}: '{text[:20]}...'")
+                    print(f"Texto añadido a {filename}: '{text[:20]}...'")
                 except (ValueError, KeyError, OSError) as e:
                     print(f"Error procesando {filename}: {e}")
                     continue

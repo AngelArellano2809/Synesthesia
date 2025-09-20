@@ -71,6 +71,9 @@ class ServerWindow(QMainWindow):
             
         def emit(self, record):
             msg = self.format(record)
+            # Filtrar mensajes de status checks
+            if "GET /status/" in msg and "200 OK" in msg:
+                return 
             self.parent.ui.server_logs_textEdit.append(msg)
             self.parent.ui.server_logs_textEdit.verticalScrollBar().setValue(
                 self.parent.ui.server_logs_textEdit.verticalScrollBar().maximum()
@@ -83,13 +86,18 @@ class ServerWindow(QMainWindow):
         
         try:
             # Obtener el directorio del servidor
-            server_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             
             # Crear proceso
             self.api_process = QProcess()
             
             # Establecer el directorio de trabajo
-            self.api_process.setWorkingDirectory(server_dir)
+            self.api_process.setWorkingDirectory(project_root)
+
+            # Configurar variables de entorno
+            env = self.api_process.processEnvironment()
+            env.insert("PYTHONPATH", project_root)
+            self.api_process.setProcessEnvironment(env)
             
             # Configurar el proceso para usar uvicorn directamente
             self.api_process.setProgram(sys.executable)
@@ -101,11 +109,6 @@ class ServerWindow(QMainWindow):
                 "--reload"
             ])
             
-            # Configurar variables de entorno si es necesario
-            env = self.api_process.processEnvironment()
-            env.insert("PYTHONPATH", server_dir)
-            self.api_process.setProcessEnvironment(env)
-            
             # Conectar señales para capturar salida
             self.api_process.readyReadStandardOutput.connect(self.handle_stdout)
             self.api_process.readyReadStandardError.connect(self.handle_stderr)
@@ -116,8 +119,6 @@ class ServerWindow(QMainWindow):
             
             self.is_running = True
             self.update_ui_state()
-            
-            # Iniciar temporizador de actualización
             self.update_timer.start(3000)
             
             logging.info("Servidor API iniciado")
@@ -156,7 +157,7 @@ class ServerWindow(QMainWindow):
                 if "INFO:" in stderr:
                     # Extraer solo el mensaje informativo
                     info_msg = stderr.split("INFO:")[-1].strip()
-                    logging.info(f"API: {info_msg}")
+                    # logging.info(f"API: {info_msg}")
                 else:
                     logging.error(f"API ERROR: {stderr}")
                     self.ui.server_logs_textEdit.append(f'<span style="color: red;">ERROR: {stderr}</span>')

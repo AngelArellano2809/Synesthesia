@@ -2,9 +2,14 @@ import os
 import uuid
 import sqlite3
 import hashlib
+from pathlib import Path
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks, HTTPException
-from pathlib import Path
+import sys
+import traceback
+
+# Añadir el directorio raíz al path para importar los módulos core
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 app = FastAPI()
 

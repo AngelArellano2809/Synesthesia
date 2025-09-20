@@ -1,16 +1,15 @@
- 
 import librosa
 from librosa.feature.rhythm import tempo as estimate_tempo
 import numpy as np
 from typing import List, Tuple
-from core.config import Config
+from ..config import Config
 
 class AudioAnalyzer:
     def __init__(self):
         self.cfg = Config.AUDIO
     
     def load_audio(self, file_path: str) -> Tuple[np.ndarray, float]:
-        """Carga el audio con manejo de errores"""
+        # Carga el audio 
         try:
             y, _ = librosa.load(file_path, sr=self.cfg['sr'], mono=True)
             tempo = self._validate_tempo(estimate_tempo(y=y, sr=self.cfg['sr'])[0])
@@ -20,13 +19,15 @@ class AudioAnalyzer:
             raise
     
     def detect_events(self, y: np.ndarray) -> List[float]:
+        # Detecta eventos de beat
         beat_times = self._detect_beats(y)
-        print(len(beat_times))
+        print('Beats: ',len(beat_times))
+        # Detecta eventos de onset
         onset_times = self._detect_onsets(y)
-        print(len(onset_times))
-        # events = np.unique(np.concatenate([beat_times, onset_times]))
+        print('Onset: ',len(onset_times))
+        # Detecta donde coinciden ambos eventos
         events = self._combine_events(beat_times, onset_times)
-        print(len(events))
+        print('Eventos: ',len(events))
         return events
     
     def _detect_beats(self, y: np.ndarray) -> np.ndarray:

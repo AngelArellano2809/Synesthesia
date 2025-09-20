@@ -3,7 +3,7 @@ import re
 from typing import List
 from moviepy import *
 from moviepy.video.io.ImageSequenceClip import ImageSequenceClip
-from core.config import Config
+from ..config import Config
 
 class VideoExporter:
     def __init__(self, fps: int = None):
@@ -22,13 +22,6 @@ class VideoExporter:
         """
         # 1. Preparar lista de imágenes con duraciones
         clips = self.prepare_clips(image_dir, events)
-        
-        # # 2. Crear clip de video
-        # video_clip = ImageSequenceClip(
-        #     [clip['path'] for clip in clips],
-        #     durations=[clip['duration'] for clip in clips],
-        #     fps=self.fps
-        # )
 
         # 2. Crear clip de video compuesto
         video_clips = []
@@ -88,20 +81,6 @@ class VideoExporter:
         # Preparar clips ordenados por tiempo
         clips = []
         sorted_times = sorted(image_map.keys())
-        
-        # # Para cada evento, calcular la duración de la imagen
-        # for i in range(len(event_times)):
-        #     start_time = event_times[i]
-        #     end_time = event_times[i + 1] if i < len(event_times) - 1 else start_time + 5.0
-        #     duration = end_time - start_time
-            
-        #     clips.append({
-        #         'path': image_map[start_time],
-        #         'duration': duration,
-        #         'start_time': start_time
-        #     })
-        
-        # return clips
 
         # Para cada tiempo de imagen, encontrar el evento correspondiente
         for i, time_val in enumerate(sorted_times):
@@ -126,11 +105,4 @@ class VideoExporter:
                     'event': matching_event
                 })
         
-        return clips
-
-    def add_transitions(self, clips: List[dict], transition_duration: float = 0.5) -> List[dict]:
-        """Añade transiciones entre clips (opcional)"""
-        # Esta implementación es conceptual - MoviePy no soporta transiciones nativas fácilmente
-        # En una implementación real, usaríamos composición con superposiciones
-        print("⚠ Las transiciones avanzadas requieren implementación adicional")
         return clips

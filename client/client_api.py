@@ -17,19 +17,11 @@ class VideoProcessingThread(QThread):
         self.running = True
 
     def run(self):
-        try:
-            # Depuración: verificar qué se está enviando
-            print(f"Enviando MP3: {self.mp3_path}")
-            print(f"Enviando preset: {self.preset}")
-            
-            # Paso 1: Subir MP3 y crear trabajo
+        try:            
+            # Subir MP3 y crear trabajo
             with open(self.mp3_path, 'rb') as f:
                 files = {'mp3': f}
                 data = {'preset': self.preset}
-
-                # Depuración: mostrar URL y datos
-                print(f"URL: {self.server_url}/create_video")
-                print(f"Datos: {data}")
                 
                 response = requests.post(
                     f"{self.server_url}/create_video",
@@ -45,7 +37,7 @@ class VideoProcessingThread(QThread):
             self.job_id = response_data['job_id']
             self.progress_updated.emit(0, "En cola")
             
-            # Paso 2: Monitorear progreso
+            # Monitorear progreso
             while self.running:
                 status_response = requests.get(f"{self.server_url}/status/{self.job_id}")
                 
@@ -65,9 +57,9 @@ class VideoProcessingThread(QThread):
                     self.error_occurred.emit(f"Error en el servidor: {status}")
                     return
                 
-                time.sleep(2)  # Esperar antes de la próxima verificación
+                time.sleep(50)  # Esperar antes de la próxima verificación
             
-            # Paso 3: Descargar video
+            # Descargar video
             video_response = requests.get(f"{self.server_url}/video/{self.job_id}", stream=True)
             
             if video_response.status_code != 200:

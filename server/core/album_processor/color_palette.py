@@ -18,14 +18,13 @@ class ColorPaletteExtractor:
             - 'hex_colors': Lista de colores HEX (#RRGGBB)
             - 'rgb_colors': Lista de tuplas RGB
             - 'color_names': Nombres aproximados de colores
-            - 'prompt_description': Descripción para prompts de SD
         """
         # 1. Cargar y redimensionar imagen
         img = Image.open(image_path)
         img = img.resize(self.resize)
         img_array = np.array(img)
         
-        # 2. Convertir a lista de píxeles (excluyendo transparencia si existe)
+        # 2. Convertir a lista de píxeles
         if img_array.shape[2] == 4:  # Imagen con canal alpha
             mask = img_array[:, :, 3] > 128  # Máscara para píxeles no transparentes
             pixels = img_array[mask][:, :3]

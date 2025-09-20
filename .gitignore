@@ -8,3 +8,4 @@ notas.txt
 *.png
 *.mp4
 server/database/synesthesia.db
+server/~

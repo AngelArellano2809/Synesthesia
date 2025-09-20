@@ -23,7 +23,7 @@ class PromptBuilder:
         if intensity > 0.7:
             prompt_parts.append("high contrast, dramatic lighting")
         elif intensity < 0.3:
-            prompt_parts.append("soft focus, minimalistic") #
+            prompt_parts.append("soft focus, minimalistic") 
         
         # Paleta de colores
         if self.color_palette and self.color_palette.get("prompt_description"):
@@ -36,7 +36,5 @@ class PromptBuilder:
 
         # Usar ponderación para elementos importantes
         prompt = ", ".join(prompt_parts)
-        # prompt += ", abstract"
-
-        # print(prompt)        
+    
         return prompt

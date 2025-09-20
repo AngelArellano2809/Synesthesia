@@ -1,6 +1,5 @@
 class ImageGenConfig:
     # Configuraciones base
-    DEFAULT_MODEL = "jru_model_full"
     DEFAULT_STEPS = 30
     DEFAULT_NEGATIVE_PROMPT = (        
         "worst quality, low quality, normal quality, text, signature, watermark, nude, nsfw, mecha, robot, "
