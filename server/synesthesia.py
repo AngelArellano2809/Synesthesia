@@ -49,8 +49,8 @@ def process_song(file_path: str, output_dir: str, style_preset="minimal_geometri
     video_exporter = VideoExporter()
     
     # Preparar ruta de salida
-    song_name = os.path.splitext(os.path.basename(file_path))[0]
-    output_video = os.path.join(output_dir, f"{song_name}_video.mp4")
+    # song_name = os.path.splitext(os.path.basename(file_path))[0]
+    output_video = os.path.join(output_dir, "video.mp4")
     
     # Crear video
     video_exporter.create_video(image_dir, file_path, events_with_lyrics, output_video)

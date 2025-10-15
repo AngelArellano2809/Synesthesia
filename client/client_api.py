@@ -2,15 +2,16 @@ import requests
 from pathlib import Path
 from PySide6.QtCore import QThread, Signal
 import time
+from config import ClientConfig
 
 class VideoProcessingThread(QThread):
     progress_updated = Signal(int, str)  # progress, status
     finished = Signal(str, bool)  # video_path, success
     error_occurred = Signal(str)
 
-    def __init__(self, server_url, mp3_path, preset, parent=None):
+    def __init__(self, mp3_path, preset, parent=None, server_url=None,):
         super().__init__(parent)
-        self.server_url = server_url
+        self.server_url = server_url or ClientConfig.SERVER_URL
         self.mp3_path = mp3_path
         self.preset = preset
         self.job_id = None

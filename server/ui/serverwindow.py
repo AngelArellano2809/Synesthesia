@@ -132,7 +132,7 @@ class ServerWindow(QMainWindow):
         """Detiene el servidor API de manera forzosa"""
         if self.api_process and self.api_process.state() == QProcess.Running:
             subprocess.run(["taskkill", "/f", "/pid", str(self.api_process.processId())])
-            self.api_process.waitForFinished(1000)
+            self.api_process.waitForFinished(100)
         
         self.is_running = False
         self.update_ui_state()
@@ -157,7 +157,7 @@ class ServerWindow(QMainWindow):
                 if "INFO:" in stderr:
                     # Extraer solo el mensaje informativo
                     info_msg = stderr.split("INFO:")[-1].strip()
-                    # logging.info(f"API: {info_msg}")
+                    logging.info(f"API: {info_msg}")
                 else:
                     logging.error(f"API ERROR: {stderr}")
                     self.ui.server_logs_textEdit.append(f'<span style="color: red;">ERROR: {stderr}</span>')
@@ -250,7 +250,7 @@ class ServerWindow(QMainWindow):
         self.ui.back_pushButton.setEnabled(self.is_running)
         
         if self.is_running:
-            self.ui.status_label.setText("Estado: En ejecución")
+            self.ui.status_label.setText("Estado: Encendido")
             self.ui.status_label.setStyleSheet("color: green; font-weight: bold;")
         else:
             self.ui.status_label.setText("Estado: Detenido")

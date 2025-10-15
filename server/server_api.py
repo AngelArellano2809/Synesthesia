@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks, HTTPException
 import sys
-import traceback
+import uvicorn
 
 # Añadir el directorio raíz al path para importar los módulos core
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -47,7 +47,7 @@ async def status():
 @app.post("/create_video")
 async def create_video(background_tasks: BackgroundTasks,
     mp3: UploadFile = File(...),
-    preset: str = Form(...)  # Cambiado de Query a Form
+    preset: str = Form(...) 
 ):
     # Log para depuración
     print(f"Recibido MP3: {mp3.filename}")
@@ -64,13 +64,15 @@ async def create_video(background_tasks: BackgroundTasks,
     
     # Crear job ID
     job_id = str(uuid.uuid4())
-    video_path = VIDEO_DIR / f"{job_id}.mp4"
+    video_path = VIDEO_DIR / job_id
+    video_path.mkdir(parents=True, exist_ok=True)
+    video_dir_path = str(video_path)
     
     # Registrar en base de datos
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("INSERT INTO jobs (id, mp3_hash, preset, status, progress, video_path) VALUES (?, ?, ?, ?, ?, ?)", 
-                  (job_id, mp3_hash, preset, "queued", 0, str(video_path)))
+                  (job_id, mp3_hash, preset, "queued", 0, str(video_dir_path)))
     conn.commit()
     conn.close()
     
@@ -111,14 +113,15 @@ def download_video(job_id: str):
     if not os.path.exists(video_path):
         raise HTTPException(status_code=404, detail="Video file not found")
     
-    return FileResponse(video_path, media_type='video/mp4', filename=f"synesthesia_{job_id}.mp4")
+    video_file_path = Path(video_path) / "video.mp4"
+
+    return FileResponse(video_file_path, media_type='video/mp4', filename=f"synesthesia_{job_id}.mp4")
 
 def process_video_background(job_id: str, mp3_path: str, preset: str, output_path: str):
     try:
         # Actualizar estado a procesando
         update_job_status(job_id, "processing", 10)
 
-        # Importar y usar tu lógica real de generación
         try:
             from synesthesia import process_song
             
@@ -153,3 +156,6 @@ def update_job_status(job_id: str, status: str, progress: int):
               (status, progress, job_id))
     conn.commit()
     conn.close()
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)

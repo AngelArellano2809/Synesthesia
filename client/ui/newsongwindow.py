@@ -123,12 +123,12 @@ class NewSongWindow(QMainWindow):
         
         preset = self.selected_preset
         
-        # Obtener URL del servidor 
-        server_url = "http://localhost:8000"  
+        # Obtener URL del servidor (Pruebas locales)
+        # server_url = "http://localhost:8000"  
         
         # Crear y configurar hilo
         self.processing_thread = VideoProcessingThread(
-            server_url=server_url,
+            # server_url=server_url,
             mp3_path=self.mp3_path,
             preset=preset
         )
