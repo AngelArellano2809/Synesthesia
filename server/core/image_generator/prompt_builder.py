@@ -34,6 +34,9 @@ class PromptBuilder:
             lyric = event_data["lyric"][:30]
             prompt_parts.append(f"interpretation of phrase: '{lyric}'")
 
+        #Eliminar posibles 
+        prompt_parts.append("no faces, no humans")
+
         # Usar ponderación para elementos importantes
         prompt = ", ".join(prompt_parts)
     

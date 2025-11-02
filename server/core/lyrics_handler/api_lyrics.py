@@ -1,3 +1,4 @@
+#LRCGET v0.2.0 (https://github.com/tranxuanthang/lrcget)
 import requests
 
 class LyricsFetcher:

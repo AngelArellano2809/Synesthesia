@@ -68,7 +68,7 @@ class VideoProcessingThread(QThread):
                 return
             
             # Guardar video localmente
-            video_dir = Path.home() / "SynesthesiaVideos"
+            video_dir = Path("SynesthesiaVideos")
             video_dir.mkdir(exist_ok=True)
             video_path = video_dir / f"synesthesia_{self.job_id}.mp4"
             
