@@ -1,9 +1,6 @@
-from server.core.audio_processor.event_generation import EventGenerator
-from server.core.lyrics_handler import LyricsHandler
-from server.core.album_processor import AlbumProcessor
-from server.core.image_generator import ImageGenerator
-from server.core.video_composer.text_renderer import ArtisticTextRenderer
-from server.core.video_composer.video_export import VideoExporter
+from core.album_processor import AlbumProcessor
+from core.lyrics_handler import LyricsHandler
+from core.audio_processor.event_generation import EventGenerator
 import subprocess
 import sys
 from pathlib import Path
@@ -237,7 +234,11 @@ def save_updated_metadata(video_path, metadata):
         print(f" Error guardando metadatos actualizados: {e}")
         return False
 
-def process_song(file_path: str, output_dir: str, style_preset="minimal_geometric"):
+def process_song():
+    file_path = 'F:/MUSICA EX\Carly Rae Jepsen/The Loveliest Time/08 - Psychedelic Switch.mp3'
+    style_preset = 'vibrant_abstract'
+    video = "F:/Trabajo PM CUCEI/demo 1.1/08 - Psychedelic Switch/08 - Psychedelic Switch_video.mp4"
+
     # 0. Extraer metadatos y portada ANTES de procesar
     print(" Extrayendo metadatos y portada del audio...")
     audio_metadata = extract_audio_metadata(file_path)
@@ -253,11 +254,10 @@ def process_song(file_path: str, output_dir: str, style_preset="minimal_geometri
     print(" Procesando audio (esto puede tomar unos segundos)...")
     audio_analysis = EventGenerator().generate_events(file_path)
     print(f" eventos encontrados: {len(audio_analysis["events"])}")
-    
+
     # 2. Procesamiento de letras
     print("\n Buscando letras...")
-    events_with_lyrics = LyricsHandler().process(file_path, 
-                                                 audio_analysis["events"])
+    events_with_lyrics = LyricsHandler().process(file_path, audio_analysis["events"])
     print(f" eventos mas letra: {len(events_with_lyrics)}")
     
     # 3. Procesamiento de portada del álbum
@@ -265,36 +265,6 @@ def process_song(file_path: str, output_dir: str, style_preset="minimal_geometri
     print("\n Buscando colores...")
     color_palette = album_processor.process_album(file_path)
     print(f" colores encontrados: {color_palette}")
-    
-    # 4. Crear directorio para imágenes
-    image_dir = os.path.join(output_dir, "images")
-    os.makedirs(image_dir, exist_ok=True)
-    
-    # 5. Generar imágenes
-    print("\n Generando imagenes...")
-    image_generator = ImageGenerator()
-    image_generator.generate_images(
-        events_with_lyrics,
-        output_dir=image_dir,
-        style_preset=style_preset,
-        color_palette=color_palette
-    )
-
-    # 6. Añadir texto a las imágenes
-    print("\n Agregando letra a imagenes...")
-    if events_with_lyrics:
-        text_renderer = ArtisticTextRenderer()
-        text_renderer.process_image_directory(image_dir, events_with_lyrics,color_palette)
-
-    # 7. Crear video final
-    print("\n Exportando video...")
-    video_exporter = VideoExporter()
-    
-    # Preparar ruta de salida
-    output_video = os.path.join(output_dir, "video.mp4")
-    
-    # Crear video
-    video_exporter.create_video(image_dir, file_path, events_with_lyrics, output_video)
 
     # 8. INYECTAR METADATOS Y PORTADA + ACTUALIZAR ARCHIVO .SYN
     print("\n📋 Inyectando metadatos y portada en el video...")
@@ -313,10 +283,10 @@ def process_song(file_path: str, output_dir: str, style_preset="minimal_geometri
     }
 
     # Inyectar metadatos en el video (para reproductores externos)
-    video_success = inject_video_metadata(output_video, file_path, final_metadata, cover_path)
+    video_success = inject_video_metadata(video, final_metadata, cover_path)
 
     # Guardar metadatos en archivo .syn (para tu interfaz)
-    metadata_success = save_updated_metadata(output_video, final_metadata)
+    metadata_success = save_updated_metadata(video, final_metadata)
 
     # Limpiar archivo temporal de portada
     if cover_path and os.path.exists(cover_path):
@@ -331,18 +301,7 @@ def process_song(file_path: str, output_dir: str, style_preset="minimal_geometri
     else:
         print("⚠ Algunos metadatos no se pudieron guardar completamente")
 
-    return output_video
+    return video
 
-    
-
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Uso: python demo.py <ruta_al_mp3> [estilo]")
-        sys.exit(1)
-    
-    file_path = sys.argv[1]
-    style = sys.argv[2] if len(sys.argv) > 2 else "minimal_geometric"
-    output_dir = os.path.splitext(os.path.basename(file_path))[0]
-    
-    result = process_song(file_path, output_dir, style)
-
+process_song()
+print('LISTOOOO')

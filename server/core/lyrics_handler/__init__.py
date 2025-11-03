@@ -12,6 +12,7 @@ class LyricsHandler:
         result = self.fetcher.search_lyrics(artist, title)
         if result is None:
             return events
+        print('Letra encontrada')
         lyrics = self._parse_lrc_to_events(result['syncedLyrics'])
         new_events = self._assign_lyrics_to_events(events, lyrics, 0.5)
         return new_events

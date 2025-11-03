@@ -1,11 +1,8 @@
 /__pycache__
-/images_test
-/jru_model
-/jru_model_full
-/test_scrips
 notas.txt
 *.pyc
 *.png
 *.mp4
 server/database/synesthesia.db
 server/~
+/client/SynesthesiaVideos

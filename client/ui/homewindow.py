@@ -50,7 +50,7 @@ class HomeWindow(QMainWindow):
         
         # Crear una card para cada video
         row, col = 0, 0
-        max_cols = 3  # Máximo de columnas
+        max_cols = 2  # Máximo de columnas
         
         for video_file in video_files:
             # Cargar metadatos

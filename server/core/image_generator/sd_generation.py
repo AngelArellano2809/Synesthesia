@@ -85,7 +85,5 @@ class ImageGenerator:
             refined_image.save(filepath)
             generated_count += 1
         
-        print(f"Imágenes generadas: {generated_count}/{len(events)}")
-        print(f"Imágenes guardadas en: {output_dir}")
         return generated_count
         
