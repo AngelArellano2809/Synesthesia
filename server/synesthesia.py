@@ -13,6 +13,8 @@ import os
 import tempfile
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, APIC
+import logging
+
 
 def extract_audio_metadata(mp3_path):
     """
@@ -46,11 +48,11 @@ def extract_audio_metadata(mp3_path):
         # Duración
         metadata['duration'] = audio.info.length
         
-        print(f" Metadatos extraídos: {metadata['title']} - {metadata['artist']}")
+        print(f" Metadatos extraídos: {metadata['title']} - {metadata['artist']}\n")
         return metadata
         
     except Exception as e:
-        print(f" Error extrayendo metadatos: {e}")
+        print(f" Error extrayendo metadatos: {e}\n")
         return {
             'title': Path(mp3_path).stem,
             'artist': 'Unknown Artist',
@@ -72,7 +74,7 @@ def extract_album_cover(mp3_path):
                 images.append(tag)
         
         if not images:
-            print("ℹ No se encontraron imágenes en los metadatos del MP3")
+            print("ℹ No se encontraron imágenes en los metadatos del MP3\n")
             return None
             
         # Seleccionar la imagen de mayor tamaño (asumimos que es la portada)
@@ -91,11 +93,11 @@ def extract_album_cover(mp3_path):
         temp_cover.write(largest_image.data)
         temp_cover.close()
         
-        print(f" Portada extraída y guardada en: {temp_cover.name}")
+        print(f" Portada extraída y guardada en: {temp_cover.name}\n")
         return temp_cover.name
         
     except Exception as e:
-        print(f" No se pudo extraer portada: {e}")
+        print(f" No se pudo extraer portada: {e}\n")
         return None
 
 def inject_video_metadata(video_path, metadata, cover_path=None):
@@ -115,7 +117,7 @@ def inject_video_metadata(video_path, metadata, cover_path=None):
         # Agregar portada si está disponible
         if cover_path and os.path.exists(cover_path):
             cmd.extend(['-i', cover_path])  # Input imagen de portada
-            print(f" Portada encontrada, agregando al video: {cover_path}")
+            print(f" Portada encontrada, agregando al video: {cover_path}\n")
         
         # Agregar metadatos
         cmd.extend([
@@ -138,28 +140,28 @@ def inject_video_metadata(video_path, metadata, cover_path=None):
         cmd.append(temp_path)
         
         # Ejecutar ffmpeg
-        print(f" Ejecutando comando ffmpeg para inyectar metadatos...")
+        print(f" Ejecutando comando ffmpeg para inyectar metadatos...\n")
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
         
         if result.returncode == 0:
             # Reemplazar archivo original con el que tiene metadatos
             os.replace(temp_path, video_path)
-            print(f" Metadatos y portada inyectados exitosamente en: {video_path}")
+            print(f" Metadatos y portada inyectados exitosamente en: {video_path}\n")
             return True
         else:
-            print(f" Error inyectando metadatos: {result.stderr}")
+            print(f" Error inyectando metadatos: {result.stderr}\n")
             # Limpiar archivo temporal en caso de error
             if os.path.exists(temp_path):
                 os.unlink(temp_path)
             return False
             
     except subprocess.TimeoutExpired:
-        print(" Timeout inyectando metadatos")
+        print(" Timeout inyectando metadatos\n")
         if os.path.exists(temp_path):
             os.unlink(temp_path)
         return False
     except Exception as e:
-        print(f" Excepción inyectando metadatos: {e}")
+        print(f" Excepción inyectando metadatos: {e}\n")
         if os.path.exists(temp_path):
             os.unlink(temp_path)
         return False
@@ -185,10 +187,10 @@ def verify_video_metadata(video_path):
             format_info = metadata.get('format', {})
             tags = format_info.get('tags', {})
             
-            print(" Verificación de metadatos del video:")
-            print(f"    Título: {tags.get('title', 'N/A')}")
-            print(f"    Artista: {tags.get('artist', 'N/A')}")
-            print(f"    Álbum: {tags.get('album', 'N/A')}")
+            print(" Verificación de metadatos del video:\n")
+            print(f"    Título: {tags.get('title', 'N/A')}\n")
+            print(f"    Artista: {tags.get('artist', 'N/A')}\n")
+            print(f"    Álbum: {tags.get('album', 'N/A')}\n")
             
             # Verificar si hay stream de imagen (portada)
             streams = metadata.get('streams', [])
@@ -196,15 +198,15 @@ def verify_video_metadata(video_path):
                 stream.get('disposition', {}).get('attached_pic', 0) == 1 
                 for stream in streams
             )
-            print(f"  Portada incluida: {'' if has_cover else ''}")
+            print(f"  Portada incluida: {'' if has_cover else ''}\n")
             
             return True
         else:
-            print(" No se pudieron verificar los metadatos")
+            print(" No se pudieron verificar los metadatos\n")
             return False
             
     except Exception as e:
-        print(f" Error verificando metadatos: {e}")
+        print(f" Error verificando metadatos: {e}\n")
         return False
     
 def save_updated_metadata(video_path, metadata):
@@ -230,48 +232,49 @@ def save_updated_metadata(video_path, metadata):
         with open(syn_path, 'w', encoding='utf-8') as f:
             json.dump(updated_metadata, f, indent=2, ensure_ascii=False)
         
-        print(f" Metadatos actualizados en: {syn_path}")
+        print(f" Metadatos actualizados en: {syn_path}\n")
         return True
         
     except Exception as e:
-        print(f" Error guardando metadatos actualizados: {e}")
+        print(f" Error guardando metadatos actualizados: {e}\n")
         return False
 
 def process_song(file_path: str, output_dir: str, style_preset="minimal_geometric"):
+    logger = logging.getLogger(__name__)
     # 0. Extraer metadatos y portada ANTES de procesar
-    print(" Extrayendo metadatos y portada del audio...")
+    print(" Extrayendo metadatos y portada del audio...\n")
     audio_metadata = extract_audio_metadata(file_path)
     cover_path = extract_album_cover(file_path)
     
-    print(f"   Título: {audio_metadata.get('title', 'N/A')}")
-    print(f"   Artista: {audio_metadata.get('artist', 'N/A')}")
-    print(f"   Álbum: {audio_metadata.get('album', 'N/A')}")
-    print(f"   Duración: {audio_metadata.get('duration', 0):.2f} segundos")
-    print(f"   Portada: {' Encontrada' if cover_path else ' No encontrada'}")
+    print(f"   Título: {audio_metadata.get('title', 'N/A')}\n")
+    print(f"   Artista: {audio_metadata.get('artist', 'N/A')}\n")
+    print(f"   Álbum: {audio_metadata.get('album', 'N/A')}\n")
+    print(f"   Duración: {audio_metadata.get('duration', 0):.2f} segundos\n")
+    print(f"   Portada: {' Encontrada' if cover_path else ' No encontrada'}\n")
 
     # 1. Procesamiento de audio
-    print(" Procesando audio (esto puede tomar unos segundos)...")
+    print(" Procesando audio (esto puede tomar unos segundos)...\n")
     audio_analysis = EventGenerator().generate_events(file_path)
-    print(f" eventos encontrados: {len(audio_analysis["events"])}")
+    print(f" eventos encontrados: {len(audio_analysis["events"])}\n")
     
     # 2. Procesamiento de letras
-    print("\n Buscando letras...")
+    print("\n Buscando letras...\n")
     events_with_lyrics = LyricsHandler().process(file_path, 
                                                  audio_analysis["events"])
-    print(f" eventos mas letra: {len(events_with_lyrics)}")
+    print(f" eventos mas letra: {len(events_with_lyrics)}\n")
     
     # 3. Procesamiento de portada del álbum
     album_processor = AlbumProcessor(n_colors=5)
-    print("\n Buscando colores...")
+    print("\n Buscando colores...\n")
     color_palette = album_processor.process_album(file_path)
-    print(f" colores encontrados: {color_palette}")
+    print(f" colores encontrados: {color_palette}\n")
     
     # 4. Crear directorio para imágenes
     image_dir = os.path.join(output_dir, "images")
     os.makedirs(image_dir, exist_ok=True)
     
     # 5. Generar imágenes
-    print("\n Generando imagenes...")
+    print("\n Generando imagenes...\n")
     image_generator = ImageGenerator()
     image_generator.generate_images(
         events_with_lyrics,
@@ -281,13 +284,13 @@ def process_song(file_path: str, output_dir: str, style_preset="minimal_geometri
     )
 
     # 6. Añadir texto a las imágenes
-    print("\n Agregando letra a imagenes...")
+    print("\n Agregando letra a imagenes...\n")
     if events_with_lyrics:
         text_renderer = ArtisticTextRenderer()
         text_renderer.process_image_directory(image_dir, events_with_lyrics,color_palette)
 
     # 7. Crear video final
-    print("\n Exportando video...")
+    print("\n Exportando video...\n")
     video_exporter = VideoExporter()
     
     # Preparar ruta de salida
@@ -297,7 +300,7 @@ def process_song(file_path: str, output_dir: str, style_preset="minimal_geometri
     video_exporter.create_video(image_dir, file_path, events_with_lyrics, output_video)
 
     # 8. INYECTAR METADATOS Y PORTADA + ACTUALIZAR ARCHIVO .SYN
-    print("\n📋 Inyectando metadatos y portada en el video...")
+    print("\n📋 Inyectando metadatos y portada en el video...\n")
 
     # Combinar metadatos COMPLETOS para el archivo .syn
     final_metadata = {
@@ -313,7 +316,7 @@ def process_song(file_path: str, output_dir: str, style_preset="minimal_geometri
     }
 
     # Inyectar metadatos en el video (para reproductores externos)
-    video_success = inject_video_metadata(output_video, file_path, final_metadata, cover_path)
+    video_success = inject_video_metadata(output_video, final_metadata, cover_path)
 
     # Guardar metadatos en archivo .syn (para tu interfaz)
     metadata_success = save_updated_metadata(output_video, final_metadata)
@@ -322,13 +325,13 @@ def process_song(file_path: str, output_dir: str, style_preset="minimal_geometri
     if cover_path and os.path.exists(cover_path):
         try:
             os.unlink(cover_path)
-            print(" Archivo temporal de portada eliminado")
+            print(" Archivo temporal de portada eliminado\n")
         except:
             pass
 
     if video_success and metadata_success:
-        print(" Metadatos agregados al video Y al archivo .syn")
+        print(" Metadatos agregados al video Y al archivo .syn\n")
     else:
-        print("⚠ Algunos metadatos no se pudieron guardar completamente")
+        print("⚠ Algunos metadatos no se pudieron guardar completamente\n")
 
     return output_video

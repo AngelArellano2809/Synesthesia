@@ -13,6 +13,7 @@ import os
 import tempfile
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, APIC
+import shutil
 
 def extract_audio_metadata(mp3_path):
     """
@@ -280,6 +281,10 @@ def process_song(file_path: str, output_dir: str, style_preset="minimal_geometri
         color_palette=color_palette
     )
 
+    #crear copia de imagenes
+    destino = f"{image_dir}_backup"
+    shutil.copytree(image_dir, destino)
+
     # 6. Añadir texto a las imágenes
     print("\n Agregando letra a imagenes...")
     if events_with_lyrics:
@@ -313,7 +318,7 @@ def process_song(file_path: str, output_dir: str, style_preset="minimal_geometri
     }
 
     # Inyectar metadatos en el video (para reproductores externos)
-    video_success = inject_video_metadata(output_video, file_path, final_metadata, cover_path)
+    video_success = inject_video_metadata(output_video, final_metadata, cover_path)
 
     # Guardar metadatos en archivo .syn (para tu interfaz)
     metadata_success = save_updated_metadata(output_video, final_metadata)

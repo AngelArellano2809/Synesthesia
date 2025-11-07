@@ -1,8 +1,10 @@
 /__pycache__
+/ui_qt_lap
 notas.txt
 *.pyc
 *.png
 *.mp4
-server/database/synesthesia.db
+/server/database
 server/~
 /client/SynesthesiaVideos
+/server/videos

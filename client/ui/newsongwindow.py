@@ -35,18 +35,7 @@ class NewSongWindow(QMainWindow):
         self.ui.back_pushButton_2.clicked.connect(self.close)
 
     def setup_presets(self):
-        """Configura los radio buttons de presets"""
-        
-        # Mapeo de nombres amigables a nombres técnicos
-        self.preset_mapping = {
-            "Minimal Geometric": "minimal_geometric",
-            "Organic Abstract": "organic_abstract",
-            "Digital Futuristic": "digital_futuristic",
-            "Psychedelic Experience": "vibrant_abstract",
-            "Cyberpunk Neon": "digital_minimalism",
-            "Ethereal Dream": "liquid_motion"
-        }
-        
+        """Configura los radio buttons de presets"""        
         # Configurar los radio buttons con nombres amigables
         self.ui.preset1_radioButton.setText("Minimal Geometric")
         self.ui.preset2_radioButton.setText("Organic Abstract")
@@ -60,7 +49,7 @@ class NewSongWindow(QMainWindow):
             "minimal_geometric": self.ui.preset1_radioButton,
             "organic_abstract": self.ui.preset2_radioButton,
             "digital_futuristic": self.ui.preset3_radioButton,
-            "vibrant_abstract": self.ui.preset4_radioButton,
+            "dream_plastic": self.ui.preset4_radioButton,
             "digital_minimalism": self.ui.preset5_radioButton,
             "liquid_motion": self.ui.preset6_radioButton
         }
@@ -153,17 +142,25 @@ class NewSongWindow(QMainWindow):
         self.ui.label_status.setText(status)
 
     def on_processing_finished(self, video_path, success):
-        if success:
-            self.ui.progressBar.setValue(100)
-            self.ui.label_status.setText("¡Video generado con éxito!")
-            
-            # Añadir a la lista de videos
-            if self.parent():
-                self.parent().add_new_video(video_path)
-            
-            QTimer.singleShot(2000, self.close)
-        else:
-            self.ui.label_status.setText("Error generando video")
+        try:
+            if success:
+                self.ui.progress_bar.setValue(100)
+                self.ui.label_status.setText("¡Video generado con éxito!")
+                
+                # Añadir a la lista de videos en HomeWindow
+                if self.parent():
+                    self.parent().add_new_video(video_path)
+                
+                # Esperar un momento y luego cerrar
+                QTimer.singleShot(2000, self.safe_close)
+            else:
+                self.ui.label_status.setText("Error generando video")
+                self.reset_ui()
+                
+        except Exception as e:
+            print(f"Error en on_processing_finished: {e}")
+            import traceback
+            traceback.print_exc()
 
     def on_processing_error(self, error_msg):
         QMessageBox.critical(self, "Error", error_msg)

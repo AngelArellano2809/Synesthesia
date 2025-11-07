@@ -7,20 +7,25 @@ from fastapi.responses import JSONResponse, FileResponse
 from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks, HTTPException
 import sys
 import uvicorn
+import logging
 
 # Añadir el directorio raíz al path para importar los módulos core
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 app = FastAPI()
 
-# Configuración de directorios
-UPLOAD_DIR = Path("uploads")
-VIDEO_DIR = Path("videos")
-DB_PATH = Path("database/synesthesia.db")
+logger = logging.getLogger('SynesthesiaServer')
+logger.setLevel(logging.INFO)
+
+# Configuración de rutas absolutas
+BASE_DIR = Path(__file__).parent
+VIDEO_DIR = BASE_DIR / "videos"
+UPLOAD_DIR = BASE_DIR / "uploads"
+DB_PATH = BASE_DIR / "database" / "synesthesia.db"
 
 # Crear directorios si no existen
-UPLOAD_DIR.mkdir(exist_ok=True)
 VIDEO_DIR.mkdir(exist_ok=True)
+UPLOAD_DIR.mkdir(exist_ok=True)
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 # Inicializar base de datos
@@ -45,7 +50,8 @@ async def status():
     return {"status": "online", "version": "1.0"}
 
 @app.post("/create_video")
-async def create_video(background_tasks: BackgroundTasks,
+async def create_video(
+    background_tasks: BackgroundTasks,
     mp3: UploadFile = File(...),
     preset: str = Form(...) 
 ):
@@ -56,12 +62,51 @@ async def create_video(background_tasks: BackgroundTasks,
     # Leer y hashear MP3
     mp3_content = await mp3.read()
     mp3_hash = hashlib.sha256(mp3_content).hexdigest()
+
+    # VERIFICAR SI YA EXISTE EN LA BASE DE DATOS
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
     
+    # Buscar trabajos completados con el mismo hash y preset
+    c.execute("""
+        SELECT id, status, video_path 
+        FROM jobs 
+        WHERE mp3_hash = ? AND preset = ? AND status = 'completed'
+        ORDER BY created_at DESC 
+        LIMIT 1
+    """, (mp3_hash, preset))
+    
+    existing_job = c.fetchone()
+
+    if existing_job:
+        # El video ya existe
+        _job_id, _status, _video_path = existing_job
+        # Verificar que el archivo de video todavía existe
+        video_file = VIDEO_DIR / _job_id / "video.mp4"
+        syn_file = VIDEO_DIR / _job_id / "video.syn"
+        
+        if video_file.exists() and syn_file.exists():
+            conn.close()
+            
+            print(f" Trabajo existente encontrado para MP3 hash: {mp3_hash[:16]}... con preset: {preset}")
+            print(f"   Job ID existente: {_job_id}")
+            
+            return JSONResponse({
+                "job_id": _job_id, 
+                "status": "already_exists"
+            }, status_code=200)
+        else:
+            # Si los archivos no existen, marcar como fallido y continuar con la creación de un nuevo trabajo
+            update_job_status(_job_id, "not_found", 4)
+
     # Guardar temporalmente
     temp_path = UPLOAD_DIR / f"temp_{mp3_hash}.mp3"
     with open(temp_path, "wb") as f:
         f.write(mp3_content)
-    
+
+    # Cerrar la conexión de la verificación
+    conn.close()
+        
     # Crear job ID
     job_id = str(uuid.uuid4())
     video_path = VIDEO_DIR / job_id
@@ -97,25 +142,43 @@ def get_job_status(job_id: str):
 
 @app.get("/video/{job_id}")
 def download_video(job_id: str):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT status, video_path FROM jobs WHERE id=?", (job_id,))
-    result = c.fetchone()
-    conn.close()
+    # conn = sqlite3.connect(DB_PATH)
+    # c = conn.cursor()
+    # c.execute("SELECT status FROM jobs WHERE id=?", (job_id,))
+    # result = c.fetchone()
+    # conn.close()
     
-    if not result:
-        raise HTTPException(status_code=404, detail="Job not found")
+    # if not result:
+    #     raise HTTPException(status_code=404, detail="Job not found")
     
-    status, video_path = result
-    if status != "completed":
-        raise HTTPException(status_code=425, detail="Video not ready yet")
+    # status, video_dir  = result
+    # if status != "completed":
+    #     raise HTTPException(status_code=425, detail="Video not ready yet")
     
-    if not os.path.exists(video_path):
-        raise HTTPException(status_code=404, detail="Video file not found")
-    
-    video_file_path = Path(video_path) / "video.mp4"
+    video_file_path = VIDEO_DIR / job_id / "video.mp4"
+    print(video_file_path)
 
-    return FileResponse(video_file_path, media_type='video/mp4', filename=f"synesthesia_{job_id}.mp4")
+    return FileResponse(str(video_file_path), media_type='video/mp4', filename=f"synesthesia_{job_id}.mp4")
+
+@app.get("/metadata/{job_id}")
+async def download_metadata(job_id: str):
+    # conn = sqlite3.connect(DB_PATH)
+    # c = conn.cursor()
+    # c.execute("SELECT status, video_path FROM jobs WHERE id=?", (job_id,))
+    # result = c.fetchone()
+    # conn.close()
+    
+    # if not result:
+    #     raise HTTPException(status_code=404, detail="Job not found")
+    
+    # status, video_dir = result
+    # if status != "completed":
+    #     raise HTTPException(status_code=425, detail="Metadata not ready yet")
+    
+    metadata_file_path = VIDEO_DIR / job_id / "video.syn"
+    print(metadata_file_path)
+    
+    return FileResponse(str(metadata_file_path), media_type='application/json', filename=f"synesthesia_{job_id}.syn")
 
 def process_video_background(job_id: str, mp3_path: str, preset: str, output_path: str):
     try:
@@ -129,21 +192,21 @@ def process_video_background(job_id: str, mp3_path: str, preset: str, output_pat
             process_song(mp3_path, output_path, preset)
             
             # Actualizar estado a completado
-            update_job_status(job_id, "completed", 50)
+            update_job_status(job_id, "completed", 90)
         except ImportError as e:
             error_msg = f"Error de importación: {str(e)}"
-            update_job_status(job_id, f"failed: {error_msg}", 0)
+            update_job_status(job_id, f"failed: {error_msg}", 1)
             return
         except Exception as e:
             error_msg = f"Error en procesamiento: {str(e)}"
-            update_job_status(job_id, f"failed: {error_msg}", 0)
+            update_job_status(job_id, f"failed: {error_msg}", 2)
             return
         
         # Actualizar estado a completado
         update_job_status(job_id, "completed", 100)
         
     except Exception as e:
-        update_job_status(job_id, f"failed: {str(e)}", 0)
+        update_job_status(job_id, f"failed: {str(e)}", 3)
     finally:
         # Eliminar archivo temporal
         if os.path.exists(mp3_path):

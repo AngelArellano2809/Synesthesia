@@ -106,3 +106,11 @@ class VideoExporter:
                 })
         
         return clips
+    
+    def create_black_clip(self, duration: float):
+        """Crea un clip negro de la duración especificada"""
+        return ColorClip(
+            size=self.cfg['RESOLUTION'], 
+            color=(0, 0, 0), 
+            duration=duration
+        )

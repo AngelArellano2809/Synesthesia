@@ -1,6 +1,9 @@
-from core.album_processor import AlbumProcessor
-from core.lyrics_handler import LyricsHandler
 from core.audio_processor.event_generation import EventGenerator
+from core.lyrics_handler import LyricsHandler
+from core.album_processor import AlbumProcessor
+from core.image_generator import ImageGenerator
+from core.video_composer.text_renderer import ArtisticTextRenderer
+from core.video_composer.video_export import VideoExporter
 import subprocess
 import sys
 from pathlib import Path
@@ -235,9 +238,11 @@ def save_updated_metadata(video_path, metadata):
         return False
 
 def process_song():
-    file_path = 'F:/MUSICA EX\Carly Rae Jepsen/The Loveliest Time/08 - Psychedelic Switch.mp3'
-    style_preset = 'vibrant_abstract'
-    video = "F:/Trabajo PM CUCEI/demo 1.1/08 - Psychedelic Switch/08 - Psychedelic Switch_video.mp4"
+    file_path = "F:/Trabajo PM CUCEI/SONGS/10 - Eve.mp3"
+    image_dir = "F:/Trabajo PM CUCEI/codigo/10 - Eve/images"
+    output_dir = "F:/Trabajo PM CUCEI/codigo/10 - Eve"
+    style_preset = 'neon_void'
+    # video = "F:/Trabajo PM CUCEI/codigo/12 - Dare/video.mp4"
 
     # 0. Extraer metadatos y portada ANTES de procesar
     print(" Extrayendo metadatos y portada del audio...")
@@ -266,6 +271,16 @@ def process_song():
     color_palette = album_processor.process_album(file_path)
     print(f" colores encontrados: {color_palette}")
 
+    # 7. Crear video final
+    print("\n Exportando video...")
+    video_exporter = VideoExporter()
+    
+    # Preparar ruta de salida
+    output_video = os.path.join(output_dir, "video.mp4")
+    
+    # Crear video
+    video_exporter.create_video(image_dir, file_path, events_with_lyrics, output_video)
+
     # 8. INYECTAR METADATOS Y PORTADA + ACTUALIZAR ARCHIVO .SYN
     print("\n📋 Inyectando metadatos y portada en el video...")
 
@@ -283,10 +298,10 @@ def process_song():
     }
 
     # Inyectar metadatos en el video (para reproductores externos)
-    video_success = inject_video_metadata(video, final_metadata, cover_path)
+    video_success = inject_video_metadata(output_video, final_metadata, cover_path)
 
     # Guardar metadatos en archivo .syn (para tu interfaz)
-    metadata_success = save_updated_metadata(video, final_metadata)
+    metadata_success = save_updated_metadata(output_video, final_metadata)
 
     # Limpiar archivo temporal de portada
     if cover_path and os.path.exists(cover_path):
@@ -301,7 +316,7 @@ def process_song():
     else:
         print("⚠ Algunos metadatos no se pudieron guardar completamente")
 
-    return video
+    return 0
 
 process_song()
 print('LISTOOOO')
